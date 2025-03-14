@@ -4,12 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"string"
 	"os"
 )
 
 func main() {
-	conn, err := net.Dial("top", "localhost:8080")
+	conn, err := net.Dial("tcp", "localhost:8080")
 	if err != nil {
 		panic(err)
 	}
@@ -19,13 +18,13 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		text, _ := reader.ReaderString ('\n')
+		text, _ := reader.ReadString('\n')
 		if text == "exit\n" {
 			break
 		}
-		conn.Write ([]byte(text))
+		conn.Write([]byte(text))
 
-		message, _ := bufio.NewReader(conn).ReaderString('\n')
+		message, _ := bufio.NewReader(conn).ReadString('\n')
 		fmt.Print("Resposta do servidor: ", message)
 	}
 }
