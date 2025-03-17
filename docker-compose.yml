@@ -1,0 +1,21 @@
+# Description: Arquivo de configuração do Docker Compose  
+version: "2.29.1"
+
+services: # Define os serviços que serão executados
+  server: # Define o serviço server
+    build: ./server
+    ports:
+      - "8080:8080"
+    networks:
+      - minha-rede
+
+  client: # Define o serviço client
+    build: ./client
+    networks:
+      - minha-rede
+    depends_on:
+      - server
+
+networks: # Define as redes que serão utilizadas
+  minha-rede:
+    driver: bridge
