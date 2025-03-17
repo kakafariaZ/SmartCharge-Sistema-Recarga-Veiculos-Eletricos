@@ -14,7 +14,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	fmt.Println("Digite uma mensagem:")
+	fmt.Println("Escolha um número de 1 a 5:")
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
@@ -22,7 +22,7 @@ func main() {
 		if text == "exit\n" {
 			break
 		}
-		conn.Write([]byte(text))
+		conn.Write([]byte(text)) // Envia a mensagem para o servidor
 
 		message, _ := bufio.NewReader(conn).ReadString('\n')
 		fmt.Print("Resposta do servidor: ", message)
