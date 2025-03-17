@@ -3,6 +3,6 @@ FROM golang:1.21.3
 WORKDIR /app
 COPY . .
 
-RUN go build -o cliente
+RUN go build -o client
 
-CMD ["./cliente"]
+CMD ["./client"]

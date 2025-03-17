@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	conn, err := net.Dial("tcp", "servidor:8080")
+	conn, err := net.Dial("tcp", "server:8080")
 	if err != nil {
 		panic(err)
 	}
