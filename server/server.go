@@ -42,6 +42,10 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
+func chargeStationGenerator(stations_amount, x_limit, y_limit int) []string {
+
+}
+
 func main() {
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
