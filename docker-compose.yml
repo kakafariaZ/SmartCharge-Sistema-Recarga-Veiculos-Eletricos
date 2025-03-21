@@ -1,5 +1,5 @@
-# Description: Arquivo de configuração do Docker Compose  
-version: "2.29.1"
+# Description: Arquivo de configuração do Docker Compose
+
 
 services: # Define os serviços que serão executados
   server: # Define o serviço server
@@ -10,7 +10,7 @@ services: # Define os serviços que serão executados
       - minha-rede
 
   client: # Define o serviço client
-    build: ./client
+    build: ./client-car
     networks:
       - minha-rede
     depends_on:

@@ -1,1 +1,2 @@
 COMANDO PARA EXECUTAR OS CONTAINERS: docker-compose up --build
+docker-compose run client
