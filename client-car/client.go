@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"net"
-	"math/rand"
+	"math/rand" 
     "time"
 )
 
 
-func carMovement(carCoordinates map[string][]int, conn net.Conn) {	
+func carMovement(carCoordinates map[string][]int, battery int, conn net.Conn) int {
 	for { // Loop infinito para atualizar as posições
         time.Sleep(time.Second) // Espera 1 segundo a cada atualização
 
@@ -18,6 +18,11 @@ func carMovement(carCoordinates map[string][]int, conn net.Conn) {
             carCoordinates[car][0] += rand.Intn(11) // Movimento no eixo X
             carCoordinates[car][1] += rand.Intn(11) // Movimento no eixo Y
         }
+
+		// Atualiza o nível da bateria
+		battery = batteryLevel(battery)
+		// Verifica se a bateria está em nível crítico
+		checkCriticalLevel(battery)
 
 		// Formata os dados como string ("car1: [x, y], car2: [x, y]")
 		data := fmt.Sprintf("car1: [%d, %d], car2: [%d, %d]\n",
@@ -32,8 +37,39 @@ func carMovement(carCoordinates map[string][]int, conn net.Conn) {
 		}
 
 		fmt.Println("Dados enviados:", data)
+
+		// Se a bateria acabar, parar a movimentação
+		if battery == 0 {
+			fmt.Println("🔋 O carro parou! Bateria esgotada! 🚨")
+			break
+		}
+	}
+	return battery
+}
+
+
+// Atualiza o nível da bateria do carro
+func batteryLevel(batteryLevel int) int {
+	//batteryConsumption := rand.Intn(11) // Consumo de bateria aleatório de 0% a 10%
+	batteryLevel -= 5 // Diminui a bateria
+
+	if batteryLevel < 0 {
+		batteryLevel = 0 // Garante que não fique negativo
+	}
+
+	fmt.Println("Nível de bateria:", batteryLevel)
+
+	return batteryLevel
+}
+
+
+// Verifica se a bateria está em nível crítico
+func checkCriticalLevel(batteryLevel int) {
+	if batteryLevel <= 20 {
+		fmt.Println("⚠️  ALERTA: Bateria em nível crítico! 🚨", batteryLevel, "%")
 	}
 }
+
 
 func main() {
 	rand.Seed(time.Now().UnixNano()) // Inicializa a semente aleatória
@@ -41,6 +77,9 @@ func main() {
 		"car1": {rand.Intn(100), rand.Intn(100)},
 		"car2": {rand.Intn(100), rand.Intn(100)},
 	}
+
+	// Nível inicial da bateria (100%)
+	batteryLevel := 100
 
 	// Conecta ao servidor na porta 8080
 	conn, err := net.Dial("tcp", "server:8080") 
@@ -53,5 +92,5 @@ func main() {
 	fmt.Println("Conectando ao servidor...")
 
 	// Inicia a movimentação dos carros. Atualiza e envia as coordenadas ao servidor
-	carMovement(carCoordinates, conn)
+	carMovement(carCoordinates, batteryLevel, conn)
 }
