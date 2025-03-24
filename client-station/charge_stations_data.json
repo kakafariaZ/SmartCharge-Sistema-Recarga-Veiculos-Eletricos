@@ -1,0 +1,49 @@
+{
+    "charge_stations": [
+        {
+        "id": 1,
+        "name": "Charge Station Alpha",
+        "location": [0, 0],
+        "status": true,
+        "capacity": 5,
+        "power": "50 kW",
+        "price": "0.25 €/kWh"
+        },
+        {
+        "id": 2,
+        "name": "Charge Station Beta",
+        "location": [0, 0],
+        "status": false,
+        "capacity": 5,
+        "power": "100 kW",
+        "price": "0.30 €/kWh"
+        },
+        {
+        "id": 3,
+        "name": "Charge Station Gamma",
+        "location": [0, 0],
+        "status": true,
+        "capacity": 5,
+        "power": "150 kW",
+        "price": "0.35 €/kWh"
+        },
+        {
+        "id": 4,
+        "name": "Charge Station Delta",
+        "location": [0, 0],
+        "status": false,
+        "capacity": 5,
+        "power": "200 kW",
+        "price": "0.40 €/kWh"
+        },
+        {
+        "id": 5,
+        "name": "Charge Station Epsilon",
+        "location": [0, 0],
+        "status": true,
+        "capacity": 5,
+        "power": "250 kW",
+        "price": "0.45 €/kWh"
+        }
+    ]
+}
