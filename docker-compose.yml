@@ -10,7 +10,7 @@ services: # Define os serviços que serão executados
       - minha-rede
 
   client: # Define o serviço client
-    build: ./client
+    build: ./client-car/client
     networks:
       - minha-rede
     depends_on:

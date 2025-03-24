@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"strings"
 )
 
 func handleConnection(conn net.Conn) {
@@ -42,11 +41,24 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
-func chargeStationGenerator(stations_amount, x_limit, y_limit int) []string {
+// func chargeStationGenerator(stations_amount, x_limit, y_limit int) []string {
 
+// }
+
+func mapGenerator(x_limit, y_limit int) []string {
+	var result []string
+	for i := 0; i < x_limit; i++ {
+		for j := 0; j < y_limit; j++ {
+			result = append(result, fmt.Sprintf("%d,%d", i, j))
+		}
+	}
+	return result
 }
 
 func main() {
+
+	mapGenerator(5, 5)
+	// Cria um servidor TCP na porta 8080
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		panic(err)
