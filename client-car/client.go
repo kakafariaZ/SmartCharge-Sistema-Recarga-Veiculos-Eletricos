@@ -5,29 +5,36 @@ import (
 	"net"
 	"math/rand" 
     "time"
+
+	"server/models"
+
 )
 
 
-func carMovement(carCoordinates map[string][]int, battery int, conn net.Conn) int {
+func carMovement(car1 Car, car2 Car, conn net.Conn) int {
+
 	for { // Loop infinito para atualizar as posições
         time.Sleep(time.Second) // Espera 1 segundo a cada atualização
 
 		/* Atualizando as coordenadas */
         for car := range carCoordinates {
             // Atualiza a posição do carro
-            carCoordinates[car][0] += rand.Intn(11) // Movimento no eixo X
-            carCoordinates[car][1] += rand.Intn(11) // Movimento no eixo Y
+			car1.Location[0] += rand.Intn(11) // Movimento no eixo X
+			car2.Location[1] += rand.Intn(11) // Movimento no eixo Y
         }
 
 		// Atualiza o nível da bateria
-		battery = batteryLevel(battery)
+		car1.BatteryLevel = batteryLevel(car1.BatteryLevel)
+		car2.BatteryLevel = batteryLevel(car2.BatteryLevel)
+
 		// Verifica se a bateria está em nível crítico
-		checkCriticalLevel(battery)
+		checkCriticalLevel(car1.BatteryLevel)
+		checkCriticalLevel(car2.BatteryLevel)
 
 		// Formata os dados como string ("car1: [x, y], car2: [x, y]")
 		data := fmt.Sprintf("car1: [%d, %d], car2: [%d, %d]\n",
-			carCoordinates["car1"][0], carCoordinates["car1"][1],
-			carCoordinates["car2"][0], carCoordinates["car2"][1])
+			car1.Location[0], car1.Location[1],
+			car2.Location[0], car2.Location[1])
 
 		// Envia os dados para o servidor
 		_, err := conn.Write([]byte(data))
@@ -37,6 +44,8 @@ func carMovement(carCoordinates map[string][]int, battery int, conn net.Conn) in
 		}
 
 		fmt.Println("Dados enviados:", data)
+
+		battery = car1.BatteryLevel
 
 		// Se a bateria acabar, parar a movimentação
 		if battery == 0 {
@@ -73,13 +82,35 @@ func checkCriticalLevel(batteryLevel int) {
 
 func main() {
 	rand.Seed(time.Now().UnixNano()) // Inicializa a semente aleatória
-	carCoordinates := map[string][]int{
-		"car1": {rand.Intn(100), rand.Intn(100)},
-		"car2": {rand.Intn(100), rand.Intn(100)},
+
+	// Criando os carros; Nível inicial da bateria (100%)
+	car1 := models.Car{
+		ID:   1,
+		//User: models.User{Name: "João"},
+		BatteryLevel: 100,
+		Location: [2]int{
+			rand.Intn(100),
+			rand.Intn(100),
+		},
 	}
 
+	car2 := models.Car{
+		ID:   1,
+		//User: models.User{Name: "João"},
+		BatteryLevel: 100,
+		Location: [2]int{
+			rand.Intn(100),
+			rand.Intn(100),
+		},
+	}
+	
+	// carCoordinates := map[string][]int{
+	// 	"car1": {rand.Intn(100), rand.Intn(100)},
+	// 	"car2": {rand.Intn(100), rand.Intn(100)},
+	// }
+
 	// Nível inicial da bateria (100%)
-	batteryLevel := 100
+	// batteryLevel := 100
 
 	// Conecta ao servidor na porta 8080
 	conn, err := net.Dial("tcp", "server:8080") 
@@ -92,5 +123,5 @@ func main() {
 	fmt.Println("Conectando ao servidor...")
 
 	// Inicia a movimentação dos carros. Atualiza e envia as coordenadas ao servidor
-	carMovement(carCoordinates, batteryLevel, conn)
+	carMovement(car1, car2, conn)
 }
