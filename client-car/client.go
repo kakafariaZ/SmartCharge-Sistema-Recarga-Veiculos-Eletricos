@@ -5,32 +5,34 @@ import (
 	"math/rand"
 	"net"
 	"time"
-
-	"github.com/NathielleA/SmartCharge-Sistema-Recarga-Veiculos-Eletricos/client-car/models"
 )
 
-func carMovement(car1 models.Car, car2 models.Car, conn net.Conn) int {
+type Car struct {
+	ID int `json:"id"`
+	//User         User  `json:"name"`
+	BatteryLevel int    `json:"batteryLevel"`
+	Location     [2]int `json:"location"`
+}
+
+func carMovement(car Car, conn net.Conn) int {
 
 	for { // Loop infinito para atualizar as posições
 		time.Sleep(time.Second) // Espera 1 segundo a cada atualização
 
 		/* Atualizando as coordenadas */
 		// Atualiza a posição do carro
-		car1.Location[0] += rand.Intn(11) // Movimento no eixo X
-		car2.Location[1] += rand.Intn(11) // Movimento no eixo Y
+		car.Location[0] += rand.Intn(11) // Movimento no eixo X
+		car.Location[1] += rand.Intn(11) // Movimento no eixo Y
 
 		// Atualiza o nível da bateria
-		car1.BatteryLevel = batteryLevel(car1.BatteryLevel)
-		car2.BatteryLevel = batteryLevel(car2.BatteryLevel)
+		car.BatteryLevel = batteryLevel(car1.BatteryLevel)
 
 		// Verifica se a bateria está em nível crítico
-		checkCriticalLevel(car1.BatteryLevel)
-		checkCriticalLevel(car2.BatteryLevel)
+		checkCriticalLevel(car.BatteryLevel)
 
 		// Formata os dados como string ("car1: [x, y], car2: [x, y]")
-		data := fmt.Sprintf("car1: [%d, %d], car2: [%d, %d]\n",
-			car1.Location[0], car1.Location[1],
-			car2.Location[0], car2.Location[1])
+		data := fmt.Sprintf("car: [%d, %d]\n",
+			car.Location[0], car.Location[1],)
 
 		// Envia os dados para o servidor
 		_, err := conn.Write([]byte(data))
@@ -43,12 +45,12 @@ func carMovement(car1 models.Car, car2 models.Car, conn net.Conn) int {
 
 		// Verifica o nível da bateria
 		// Se a bateria acabar, parar a movimentação
-		if car1.BatteryLevel == 0 {
+		if car.BatteryLevel == 0 {
 			fmt.Println("🔋 O carro parou! Bateria esgotada! 🚨")
 			break
 		}
 	}
-	return car1.BatteryLevel
+	return car.BatteryLevel
 }
 
 // Atualiza o nível da bateria do carro
@@ -76,7 +78,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano()) // Inicializa a semente aleatória
 
 	// Criando os carros; Nível inicial da bateria (100%)
-	car1 := models.Car{
+	car1 := Car{
 		ID: 1,
 		//User: models.User{Name: "João"},
 		BatteryLevel: 100,
@@ -86,7 +88,7 @@ func main() {
 		},
 	}
 
-	car2 := models.Car{
+	car2 := Car{
 		ID: 1,
 		//User: models.User{Name: "João"},
 		BatteryLevel: 100,
