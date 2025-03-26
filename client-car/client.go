@@ -10,8 +10,8 @@ import (
 type Car struct {
 	ID int `json:"id"`
 	//User         User  `json:"name"`
-	BatteryLevel int    `json:"batteryLevel"`
-	Location     [2]int `json:"location"`
+	BatteryLevel   int    `json:"batteryLevel"`
+	Location       [2]int `json:"location"`
 }
 
 func carMovement(car Car, conn net.Conn) int {
@@ -30,9 +30,9 @@ func carMovement(car Car, conn net.Conn) int {
 		// Verifica se a bateria está em nível crítico
 		checkCriticalLevel(car.BatteryLevel)
 
-		// Formata os dados como string ("car: [x, y]")
-		data := fmt.Sprintf("%d, %d\n",
-			car.Location[0], car.Location[1],)
+		// Formata os dados como string ("car: [x, y]"). Envia as coordenadas e o nível de bateria
+		data := fmt.Sprintf("%d, %d, %d\n",
+			car.Location[0], car.Location[1], car.BatteryLevel)
 
 		// Envia os dados para o servidor
 		_, err := conn.Write([]byte(data))
@@ -41,7 +41,7 @@ func carMovement(car Car, conn net.Conn) int {
 			break
 		}
 
-		fmt.Println("Dados enviados:", data)
+		//fmt.Println("Dados enviados:", data)
 
 		// Verifica o nível da bateria
 		// Se a bateria acabar, parar a movimentação
