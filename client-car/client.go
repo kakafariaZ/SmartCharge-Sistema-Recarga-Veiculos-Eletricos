@@ -30,8 +30,8 @@ func carMovement(car Car, conn net.Conn) int {
 		// Verifica se a bateria está em nível crítico
 		checkCriticalLevel(car.BatteryLevel)
 
-		// Formata os dados como string ("car1: [x, y], car2: [x, y]")
-		data := fmt.Sprintf("car: [%d, %d]\n",
+		// Formata os dados como string ("car: [x, y]")
+		data := fmt.Sprintf("%d, %d\n",
 			car.Location[0], car.Location[1],)
 
 		// Envia os dados para o servidor

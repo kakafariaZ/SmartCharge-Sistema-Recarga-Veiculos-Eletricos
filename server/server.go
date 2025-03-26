@@ -4,8 +4,25 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
+	"strings"
 )
 
+// Função que calcula a distânicia entre o carro e os postos e retorna o melhor ponto de recarga
+func calculateStationDistances(carLocation [2]int, stations map[string][2]int) string {
+	var bestStation string
+	var bestDistance int
+
+	for station, location := range stations {
+		distance := abs(carLocation[0]-location[0]) + abs(carLocation[1]-location[1])
+		if bestDistance == 0 || distance < bestDistance {
+			bestDistance = distance
+			bestStation = station
+		}
+	}
+
+	return bestStation
+}
 
 func main() {
 	listener, err := net.Listen("tcp", ":8080") // Cria um servidor TCP escutando na porta 8080
@@ -46,5 +63,21 @@ func handleClient(conn net.Conn) {
 
 		// Exibir os dados recebidos
 		fmt.Println("Coordenadas recebidas:", string(buf[:n]))
+
+		// Separando as coordenadas x e y
+		coordinates := strings.Split(string(buf[:n]), ",")
+
+		// Convertendo para números inteiros
+		coord_x, err := strconv.Atoi(coordinates[0])
+		if err != nil {
+			fmt.Println("Erro ao converter coordenada x:", err)
+			break
+		}
+		coord_y, err := strconv.Atoi(coordinates[1])
+		if err != nil {
+			fmt.Println("Erro ao converter coordenada y:", err)
+			break
+		}
+
 	}
 }
