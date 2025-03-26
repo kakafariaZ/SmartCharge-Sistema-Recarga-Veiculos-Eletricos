@@ -25,7 +25,7 @@ func carMovement(car Car, conn net.Conn) int {
 		car.Location[1] += rand.Intn(11) // Movimento no eixo Y
 
 		// Atualiza o nível da bateria
-		car.BatteryLevel = batteryLevel(car1.BatteryLevel)
+		car.BatteryLevel = batteryLevel(car.BatteryLevel)
 
 		// Verifica se a bateria está em nível crítico
 		checkCriticalLevel(car.BatteryLevel)
@@ -88,15 +88,15 @@ func main() {
 		},
 	}
 
-	car2 := Car{
-		ID: 1,
-		//User: models.User{Name: "João"},
-		BatteryLevel: 100,
-		Location: [2]int{
-			rand.Intn(100),
-			rand.Intn(100),
-		},
-	}
+	// car2 := Car{
+	// 	ID: 1,
+	// 	//User: models.User{Name: "João"},
+	// 	BatteryLevel: 100,
+	// 	Location: [2]int{
+	// 		rand.Intn(100),
+	// 		rand.Intn(100),
+	// 	},
+	// }
 
 	// carCoordinates := map[string][]int{
 	// 	"car1": {rand.Intn(100), rand.Intn(100)},
@@ -117,5 +117,5 @@ func main() {
 	fmt.Println("Conectando ao servidor...")
 
 	// Inicia a movimentação dos carros. Atualiza e envia as coordenadas ao servidor
-	carMovement(car1, car2, conn)
+	carMovement(car1, conn)
 }

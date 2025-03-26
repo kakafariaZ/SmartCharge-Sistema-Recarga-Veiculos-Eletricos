@@ -4,17 +4,22 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"encoding/json"
+	"os"
 	"strconv"
 	"strings"
+	"math"
 )
 
 // Função que calcula a distânicia entre o carro e os postos e retorna o melhor ponto de recarga
-func calculateStationDistances(carLocation [2]int, stations map[string][2]int) string {
-	var bestStation string
+func calculateStationDistances(carLocation [2]int, stations map[int][2]int) int {
+	var bestStation int
 	var bestDistance int
 
 	for station, location := range stations {
-		distance := abs(carLocation[0]-location[0]) + abs(carLocation[1]-location[1])
+		distance := int(math.Sqrt(math.Pow(float64(carLocation[0]-location[0]), 2) + 
+								math.Pow(float64(carLocation[1]-location[1]), 2)))
+		
 		if bestDistance == 0 || distance < bestDistance {
 			bestDistance = distance
 			bestStation = station
@@ -22,6 +27,39 @@ func calculateStationDistances(carLocation [2]int, stations map[string][2]int) s
 	}
 
 	return bestStation
+}
+
+// Função que lê o JSON e retorna um mapa com ID da estação e sua localização
+func LoadStationsFromJSON(filename string) (map[int][2]int, error) {
+	// Abrir o arquivo JSON
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	// Decodificar o JSON para um mapa genérico
+	var rawData map[string]interface{}
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&rawData); err != nil {
+		return nil, err
+	}
+
+	// Criar o dicionário com ID -> Coordenadas
+	stationsMap := make(map[int][2]int)
+
+	// Processar os dados manualmente sem struct
+	if stations, ok := rawData["charge_stations"].([]interface{}); ok {
+		for _, station := range stations {
+			stationMap := station.(map[string]interface{})
+			id := int(stationMap["id"].(float64))
+			locationData := stationMap["location"].([]interface{})
+			location := [2]int{int(locationData[0].(float64)), int(locationData[1].(float64))}
+			stationsMap[id] = location
+		}
+	}
+
+	return stationsMap, nil
 }
 
 func main() {
@@ -61,23 +99,34 @@ func handleClient(conn net.Conn) {
 			break
 		}
 
-		// Exibir os dados recebidos
-		fmt.Println("Coordenadas recebidas:", string(buf[:n]))
-
 		// Separando as coordenadas x e y
 		coordinates := strings.Split(string(buf[:n]), ",")
 
 		// Convertendo para números inteiros
-		coord_x, err := strconv.Atoi(coordinates[0])
+		coord_x, err := strconv.Atoi(strings.TrimSpace(coordinates[0]))
 		if err != nil {
 			fmt.Println("Erro ao converter coordenada x:", err)
 			break
 		}
-		coord_y, err := strconv.Atoi(coordinates[1])
+		coord_y, err := strconv.Atoi(strings.TrimSpace(coordinates[1]))
 		if err != nil {
 			fmt.Println("Erro ao converter coordenada y:", err)
 			break
 		}
+
+		carLocation := [2]int{coord_x, coord_y}
+		
+		chargeStations, err := LoadStationsFromJSON("charge_stations_data.json")
+		if err != nil {
+			fmt.Println("Erro ao carregar estações de recarga:", err)
+			return
+		}
+
+		bestStation := calculateStationDistances(carLocation, chargeStations)
+
+		// Exibir os dados recebidos
+		fmt.Printf("Coordenadas recebidas: %d, %d\n", coord_x, coord_y)
+		fmt.Printf("Melhor Posto: %d\n", bestStation)
 
 	}
 }
