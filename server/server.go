@@ -105,7 +105,7 @@ func handleClient(conn net.Conn) {
 			break
 		}
 
-		// Armazena as coordenadas do carro na variável 
+		// Armazena as coordenadas do carro na variável
 		carLocation := [2]int{coord_x, coord_y}
 		
 		// Armazena as localizações do posto na variável 
