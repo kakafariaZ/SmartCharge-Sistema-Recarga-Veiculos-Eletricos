@@ -15,6 +15,10 @@ services: # Define os serviços que serão executados
       - minha-rede
     depends_on:
       - server
+    environment:
+      - CAR_ID=1 # O ID do carro será substituído dinamicamente
+    deploy:
+      replicas: 3 # Define o número de réplicas do serviço client
 
 networks: # Define as redes que serão utilizadas
   minha-rede:
