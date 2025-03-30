@@ -27,5 +27,7 @@ func main() {
 
 		message, _ := bufio.NewReader(conn).ReadString('\n')
 		fmt.Print("Resposta do servidor: ", message)
+
+		fmt.Println("NATHIELLE ELLE ELLE ELLE ELLE")
 	}
 }
