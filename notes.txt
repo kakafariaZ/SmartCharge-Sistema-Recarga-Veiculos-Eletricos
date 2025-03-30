@@ -1,2 +1,12 @@
-COMANDO PARA EXECUTAR OS CONTAINERS: docker-compose up --build
+COMANDO PARA EXECUTAR OS CONTAINERS:
+docker-compose up --build
 docker-compose run client
+
+REMOVE OS CONTAINERS
+docker-compose down
+
+CRIA AS IMAGENS
+docker-compose build: cria as imagens
+
+CRIA AS INSTÂNCIAS COS CLIENTES COM A QTD NECESSÁRIA
+docker-compose up --scale client=2
