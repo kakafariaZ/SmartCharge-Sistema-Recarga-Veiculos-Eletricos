@@ -80,7 +80,7 @@ func handleClient(conn net.Conn) {
 		}
 
 
-		/* ====== LÊ OS DADOS DO BUFFER E OS INTERPRETA COMO COORDENADAS ====== */
+		/* ====== LÊ OS DADOS DO BUFFER E OS INTERPRETA COMO COORDENADAS ====== teste*/
 		// Separando as coordenadas x e y
 		coordinates := strings.Split(string(buf[:n]), ",")
 
