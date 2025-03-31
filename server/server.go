@@ -80,7 +80,7 @@ func handleClient(conn net.Conn) {
 		}
 
 
-		/* ====== LÊ OS DADOS DO BUFFER E OS INTERPRETA COMO COORDENADAS ====== teste*/
+		/* ====== LÊ OS DADOS DO BUFFER E OS INTERPRETA COMO COORDENADAS ====== */
 		// Separando as coordenadas x e y
 		coordinates := strings.Split(string(buf[:n]), ",")
 
@@ -124,6 +124,8 @@ func handleClient(conn net.Conn) {
 			fmt.Printf("Coordenadas recebidas: %d, %d\n", coord_x, coord_y)
 			fmt.Printf("Nível de bateria crítico: %d%%\n", batteryLevel)
 			fmt.Printf("Melhor Posto de Recarga: %d\n", bestStation)
+
+			// Verifica se o posto selecionado está disponível
 		}
 		
 

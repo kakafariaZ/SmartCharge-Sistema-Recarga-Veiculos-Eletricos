@@ -16,7 +16,6 @@ type ChargingStation struct {
 	Name       string    `json:"name"`
 	Location   [2]int    `json:"location"`
 	Occupation bool      `json:"occupation"`
-	Capacity   int       `json:"capacity"`
 	Power      int       `json:"power"`
 	Price      float64   `json:"price"`
 	mu         sync.Mutex
