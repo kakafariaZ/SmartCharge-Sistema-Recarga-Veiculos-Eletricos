@@ -2,7 +2,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -23,19 +22,24 @@ type ChargingStation struct {
 }
 
 // station é a instância do posto carregada do JSON.
-var station ChargingStation
+//var station ChargingStation
 
 // loadStationData carrega os dados do posto a partir de um arquivo JSON.
-func loadStationData(filename string) error {
+func loadStationData(filename string) ChargingStation {
 	file, err := os.Open(filename)
 	if err != nil {
-		return err
+		fmt.Printf("Erro ao ler JSON")
 	}
-	defer file.Close()
 
+	// Decodificar o JSON diretamente para a estrutura ChargingStation
+	var station ChargingStation
 	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&station)
-	return err
+	if err := decoder.Decode(&station); err != nil {
+		return ChargingStation{}
+	}
+
+	// Retornar a instância de ChargingStation carregada
+	return station
 }
 
 func sendStationData(station ChargingStation, conn net.Conn) {
@@ -64,62 +68,62 @@ func sendStationData(station ChargingStation, conn net.Conn) {
 
 }
 
-func handleLocationRequest(conn net.Conn) {
-	defer conn.Close()
+// func handleLocationRequest(conn net.Conn) {
+// 	defer conn.Close()
 
-	// Lendo a requisição do servidor solicitante
-	reader := bufio.NewReader(conn)
-	request, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Println("Erro ao ler a requisição:", err)
-		return
-	}
+// 	// Lendo a requisição do servidor solicitante
+// 	reader := bufio.NewReader(conn)
+// 	request, err := reader.ReadString('\n')
+// 	if err != nil {
+// 		fmt.Println("Erro ao ler a requisição:", err)
+// 		return
+// 	}
 
-	fmt.Println("Requisição recebida:", request)
+// 	fmt.Println("Requisição recebida:", request)
 
-	// Consultando a localização do posto
-	station.mu.Lock()
-	isLocation := station.Location // Retorna a localização com uma tupla
-	station.mu.Unlock()
+// 	// Consultando a localização do posto
+// 	station.mu.Lock()
+// 	isLocation := station.Location // Retorna a localização com uma tupla
+// 	station.mu.Unlock()
 
-	//Criando resposta
-	response := fmt.Sprintf("%t\n", isLocation) // Responde com a localização com uma tupla
-	conn.Write([]byte(response))                // Enviando resposta
+// 	//Criando resposta
+// 	response := fmt.Sprintf("%t\n", isLocation) // Responde com a localização com uma tupla
+// 	conn.Write([]byte(response))                // Enviando resposta
 
-}
+// }
 
-func handleAvailabilityRequest(conn net.Conn) {
-	defer conn.Close()
+// func handleAvailabilityRequest(conn net.Conn) {
+// 	defer conn.Close()
 
-	// Lendo a requisição do servidor solicitante
-	reader := bufio.NewReader(conn)
-	request, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Println("Erro ao ler a requisição:", err)
-		return
-	}
+// 	// Lendo a requisição do servidor solicitante
+// 	reader := bufio.NewReader(conn)
+// 	request, err := reader.ReadString('\n')
+// 	if err != nil {
+// 		fmt.Println("Erro ao ler a requisição:", err)
+// 		return
+// 	}
 
-	fmt.Println("Requisição recebida:", request)
+// 	fmt.Println("Requisição recebida:", request)
 
-	// Consultando a disponibilidade do posto
-	station.mu.Lock()
-	isAvailable := !station.Occupation // Se ocupado, retorna false; se livre, true
-	station.mu.Unlock()
+// 	// Consultando a disponibilidade do posto
+// 	station.mu.Lock()
+// 	isAvailable := !station.Occupation // Se ocupado, retorna false; se livre, true
+// 	station.mu.Unlock()
 
-	// Criando a resposta
-	response := fmt.Sprintf("%t\n", isAvailable) // Responde apenas "true" ou "false"
-	conn.Write([]byte(response))                 // Enviando resposta
-}
+// 	// Criando a resposta
+// 	response := fmt.Sprintf("%t\n", isAvailable) // Responde apenas "true" ou "false"
+// 	conn.Write([]byte(response))                 // Enviando resposta
+// }
 
 func main() {
 	// Carrega os dados do posto a partir do JSON
-	err := loadStationData("charge_stations_data.json")
-	if err != nil {
-		fmt.Println("Erro ao carregar os dados do posto:", err)
-		return
-	}
+	// err := loadStationData("charge_stations_data.json")
+	// if err != nil {
+	// 	fmt.Println("Erro ao carregar os dados do posto:", err)
+	// 	return
+	// }
 
-	fmt.Printf("Dados do posto carregados: %+v\n", station)
+	//fmt.Printf("Dados do posto carregados: %+v\n", station)
 
 	// Criando um servidor TCP para responder requisições
 	listener, err := net.Listen("tcp", ":8080")
@@ -140,7 +144,9 @@ func main() {
 		}
 
 		// Processa a requisição em uma goroutine para suportar múltiplos clientes
-		go handleAvailabilityRequest(conn)
-		go handleLocationRequest(conn)
+		data := loadStationData("charge_stations_data.json")
+		go sendStationData(data, conn)
+		//go handleAvailabilityRequest(conn)
+		//go handleLocationRequest(conn)
 	}
 }
