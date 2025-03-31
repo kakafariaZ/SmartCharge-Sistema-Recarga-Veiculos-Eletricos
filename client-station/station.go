@@ -1,113 +1,96 @@
+//atualizado 2
 package main
 
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"net"
 	"os"
 	"sync"
-
-	"github.com/gorilla/websocket"
 )
 
 // ChargingStation representa um posto de abastecimento de carro elétrico.
 type ChargingStation struct {
-	ID         int       `json:"id"`
-	Name       string    `json:"name"`
-	Location   [2]int    `json:"location"`
-	Occupation bool      `json:"occupation"`
-	Power      int       `json:"power"`
-	Price      float64   `json:"price"`
+	Type       string  `json:"type"`
+	ID         int     `json:"id"`
+	Name       string  `json:"name"`
+	Location   [2]int  `json:"location"`
+	Occupation bool    `json:"occupation"`
+	Power      int     `json:"power"`
+	Price      float64 `json:"price"`
 	mu         sync.Mutex
 }
 
 // station é a instância do posto carregada do JSON.
-var station ChargingStation
-
-// Configuração do WebSocket
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
+//var station ChargingStation
 
 // loadStationData carrega os dados do posto a partir de um arquivo JSON.
-func loadStationData(filename string) error {
+func loadStationData(filename string) ChargingStation {
 	file, err := os.Open(filename)
 	if err != nil {
-		return err
+		fmt.Printf("Erro ao ler JSON")
 	}
-	defer file.Close()
 
+	// Decodificar o JSON diretamente para a estrutura ChargingStation
+	var station ChargingStation
 	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&station)
-	return err
+	if err := decoder.Decode(&station); err != nil {
+		return ChargingStation{}
+	}
+
+	// Retornar a instância de ChargingStation carregada
+	return station
 }
 
-// handleWebSocket gerencia a comunicação via WebSocket.
-func handleWebSocket(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		fmt.Println("WebSocket upgrade error:", err)
-		return
-	}
+func sendStationData(station ChargingStation, conn net.Conn) {
 	defer conn.Close()
 
-	for {
-		// Lê a mensagem recebida do cliente (carro)
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			fmt.Println("WebSocket read error:", err)
-			break
-		}
-
-		var request map[string]string
-		err = json.Unmarshal(message, &request)
-		if err != nil {
-			fmt.Println("JSON parse error:", err)
-			continue
-		}
-
-		// Processa a requisição recebida
-		station.mu.Lock()
-		var response map[string]interface{}
-
-		switch request["action"] {
-		case "check":
-			response = map[string]interface{}{"available": !station.Occupation}
-		case "connect":
-			if station.Occupation {
-				response = map[string]interface{}{"error": "Station occupied"}
-			} else {
-				station.Occupation = true
-				response = map[string]interface{}{"message": "Car connected successfully"}
-			}
-		case "disconnect":
-			if !station.Occupation {
-				response = map[string]interface{}{"error": "No car connected"}
-			} else {
-				station.Occupation = false
-				response = map[string]interface{}{"message": "Car disconnected successfully"}
-			}
-		default:
-			response = map[string]interface{}{"error": "Invalid action"}
-		}
-		station.mu.Unlock()
-
-		// Envia a resposta para o cliente
-		respJSON, _ := json.Marshal(response)
-		conn.WriteMessage(websocket.TextMessage, respJSON)
+	// Informações
+	message := ChargingStation{
+		Type:       station.Type,
+		ID:         station.ID,
+		Occupation: station.Occupation,
+		Location:   station.Location,
 	}
-}
 
-func main() {
-	// Carrega os dados do posto a partir do JSON
-	err := loadStationData("station.json")
+	// Convertendo para JSON
+	jsonData, err := json.Marshal(message)
 	if err != nil {
-		fmt.Println("Error loading station data:", err)
+		fmt.Println("Erro ao converter para JSON:", err)
 		return
 	}
 
-	http.HandleFunc("/ws", handleWebSocket)
+	// Enviando JSON par//a o servidor
+	_, err = conn.Write(jsonData)
+	if err != nil {
+		fmt.Println("Erro ao enviar dados:", err)
+	}
 
-	fmt.Println("Charging station WebSocket server running on port 8080")
-	http.ListenAndServe(":8080", nil)
+}
+
+
+func main() {
+
+	// Conecta ao servidor na porta 8080
+	conn, err := net.Dial("tcp", "server:8080")
+	if err != nil {
+		panic(err)
+	}
+
+	defer conn.Close() // Fecha a conexão
+
+	fmt.Println("Servidor esperando requisições na porta 8080...")
+
+	data := loadStationData("charge_stations_data.json")
+	fmt.Println("Lendo arquivo\n")
+	
+	sendStationData(data, conn)
+	fmt.Println("Enviando arquivo\n")
+
+	for {
+		// Processa a requisição em uma goroutine para suportar múltiplos clientes
+		
+		//go handleAvailabilityRequest(conn)
+		//go handleLocationRequest(conn)
+	}
 }

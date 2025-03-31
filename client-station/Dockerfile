@@ -4,6 +4,6 @@ WORKDIR /app
 COPY . .
 
 RUN go mod tidy
-RUN go build -o client-car
+RUN go build -o client-station
 
-CMD ["./client-car"]
+CMD ["./client-station"]

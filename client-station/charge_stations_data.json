@@ -1,0 +1,9 @@
+{
+    "type": "station",
+    "id": 1,
+    "name": "Charge Station Alpha",
+    "location": [100, 80],
+    "occupation": true,
+    "power": "50 kW",
+    "price": "0.25 €/kWh"
+}
