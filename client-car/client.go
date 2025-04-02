@@ -112,12 +112,13 @@ func displayBattery(car Car) {
 	batteryPercentage := car.BatteryLevel
 	numHashMarks := (batteryPercentage * totalBars) / 100 // Quantos "#" mostrar
 
-	// Exibe a interface de bateria
+	// Exibe a interface de bateria com bordas
 	fmt.Printf("\n      USER    ID: %d\n", car.ID)
-	fmt.Println(" -----------------------")
-	// Usando strings.Repeat para repetir os caracteres
-	fmt.Printf("|%s   |  %d%%\n", strings.Repeat("#", numHashMarks) + strings.Repeat(" ", totalBars - numHashMarks), batteryPercentage)
-	fmt.Println(" -----------------------")
+	fmt.Println("┌──────────────────────┐")
+	fmt.Printf("│   Bateria: %3d%%      │\n", batteryPercentage)
+	fmt.Println("├──────────────────────┤")
+	fmt.Printf("││%s%s││\n", strings.Repeat("█", numHashMarks), strings.Repeat(" ", totalBars-numHashMarks)) // Usando strings.Repeat para repetir os caracteres
+	fmt.Println("└──────────────────────┘")
 }
 
 
@@ -131,7 +132,7 @@ func main() {
 	car := Car{
 		ID: carID,
 		//User: models.User{Name: "João"},
-		BatteryLevel: 100,
+		BatteryLevel: rand.Intn(51) + 50, // Bateria entre 50% e 100%
 		Location: [2]int{
 			rand.Intn(100),
 			rand.Intn(100),
