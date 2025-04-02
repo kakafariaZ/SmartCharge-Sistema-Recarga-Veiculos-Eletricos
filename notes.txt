@@ -9,4 +9,10 @@ CRIA AS IMAGENS
 docker-compose build: cria as imagens
 
 CRIA AS INSTÂNCIAS COS CLIENTES COM A QTD NECESSÁRIA
-docker-compose up --scale client=2
+docker-compose up --scale client-car=2
+
+------- TO-DO ----------
+- Fila do ponto de recarga
+- Incluir disponibilidade no cálculo do melhor posto
+- Recarga do carro
+- Pagamento

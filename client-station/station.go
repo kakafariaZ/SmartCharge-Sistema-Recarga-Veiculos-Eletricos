@@ -43,7 +43,6 @@ func loadStationData(filename string) ChargingStation {
 }
 
 func sendStationData(station ChargingStation, conn net.Conn) {
-	defer conn.Close()
 
 	// Informações
 	message := ChargingStation{
@@ -77,19 +76,22 @@ func main() {
 		panic(err)
 	}
 
-	defer conn.Close() // Fecha a conexão
+	//defer conn.Close() // Fecha a conexão
 
-	fmt.Println("Servidor esperando requisições na porta 8080...")
+	// Teste de conexão com o servidor
+	fmt.Println("Ponto de Recarga conectando ao servidor...")
 
 	data := loadStationData("charge_stations_data.json")
 	fmt.Println("Lendo arquivo\n")
-	
+		
 	sendStationData(data, conn)
 	fmt.Println("Enviando arquivo\n")
 
 	for {
 		// Processa a requisição em uma goroutine para suportar múltiplos clientes
 		
+		
+
 		//go handleAvailabilityRequest(conn)
 		//go handleLocationRequest(conn)
 	}

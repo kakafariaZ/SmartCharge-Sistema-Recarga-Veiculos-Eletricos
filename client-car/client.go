@@ -147,8 +147,6 @@ func main() {
 	defer conn.Close() // Fecha a conexão
 
 	// Teste de conexão com o servidor
-	fmt.Println("Conectando ao servidor...")
-	
 	fmt.Printf("🚗 Carro %d conectado ao servidor!\n", car.ID)
 
 	// Inicia a movimentação dos carros. Atualiza e envia as coordenadas ao servidor
