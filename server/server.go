@@ -6,8 +6,8 @@ import (
 	"net"
 	"encoding/json"
 	"os"
-	"strconv"
-	"strings"
+//	"strconv"
+//	"strings"
 	"math"
 )
 
@@ -79,35 +79,45 @@ func handleClient(conn net.Conn) {
 			break
 		}
 
+		// Decodifica a mensagem JSON recebida
+		var message map[string]interface{}
+		err = json.Unmarshal(buf[:n], &message)
+		if err != nil {
+			fmt.Println("Erro ao decodificar JSON:", err)
+			return
+		}
+
+		// Identifica se a conexão é de um carro ou um posto de recarga
+		clientType, ok := message["type"].(string)
+		if !ok {
+			fmt.Println("Mensagem inválida, sem tipo definido.")
+			return
+		}
 
 		/* ====== LÊ OS DADOS DO BUFFER E OS INTERPRETA COMO COORDENADAS ====== */
-		// Separando as coordenadas x e y
-		coordinates := strings.Split(string(buf[:n]), ",")
 
-		// Convertendo para números inteiros
-			// coordenada x
-		coord_x, err := strconv.Atoi(strings.TrimSpace(coordinates[0]))
-		if err != nil {
-			fmt.Println("Erro ao converter coordenada x:", err)
-			break
+		// Identifica a origem da mensagem
+		switch clientType {
+		case "car":
+			fmt.Println("Conexão de um carro detectada:", message)
+			//handleCar(conn, message)
+		case "station":
+			fmt.Println("Conexão de um posto de recarga detectada:", message)
+			//handleStation(conn, message)
+		default:
+			fmt.Println("Tipo desconhecido:", clientType)
 		}
 
-		// coordenada x
-		coord_y, err := strconv.Atoi(strings.TrimSpace(coordinates[1]))
-		if err != nil {
-			fmt.Println("Erro ao converter coordenada y:", err)
-			break
+		//id := int(message["id"].(float64)) // Convertendo de JSON (float64) para int
+		batteryLevel := int(message["batteryLevel"].(float64))
+		//location := message["location"].([]interface{})
+		locationInterface := message["location"].([]interface{})
+
+		carLocation := [2]int{
+			int(locationInterface[0].(float64)), // Converte cada elemento explicitamente para int
+			int(locationInterface[1].(float64)),
 		}
 
-		batteryLevel, err := strconv.Atoi(strings.TrimSpace(coordinates[2]))
-		if err != nil {
-			fmt.Println("Erro ao converter nível de bateria:", err)
-			break
-		}
-
-		// Armazena as coordenadas do carro na variável
-		carLocation := [2]int{coord_x, coord_y}
-		
 		// Armazena as localizações do posto na variável 
 		chargeStations, err := LoadStationsFromJSON("charge_stations_data.json")
 		if err != nil {
@@ -121,9 +131,11 @@ func handleClient(conn net.Conn) {
 			bestStation := calculateStationDistances(carLocation, chargeStations)
 
 			// Exibe o melhor posto de recarga
-			fmt.Printf("Coordenadas recebidas: %d, %d\n", coord_x, coord_y)
+			fmt.Printf("Coordenadas recebidas: %d, %d\n", carLocation[0], carLocation[1])
 			fmt.Printf("Nível de bateria crítico: %d%%\n", batteryLevel)
 			fmt.Printf("Melhor Posto de Recarga: %d\n", bestStation)
+
+			// Verifica se o posto selecionado está disponível
 		}
 		
 

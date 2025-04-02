@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net"
@@ -9,12 +10,35 @@ import (
 )
 
 type Car struct {
+	Type string `json:"type"`
 	ID             int    `json:"id"`
 	//User         User   `json:"name"`
 	BatteryLevel   int    `json:"batteryLevel"`
 	Location       [2]int `json:"location"`
 }
 
+func sendCarData(car Car, conn net.Conn) {
+	// Criando a estrutura da mensagem
+	message := Car{
+		Type:         "car",
+		ID:           car.ID,
+		Location:     car.Location,
+		BatteryLevel: car.BatteryLevel,
+	}
+
+	// Convertendo para JSON
+	jsonData, err := json.Marshal(message)
+	if err != nil {
+		fmt.Println("Erro ao converter para JSON:", err)
+		return
+	}
+
+	// Enviando JSON para o servidor
+	_, err = conn.Write(jsonData)
+	if err != nil {
+		fmt.Println("Erro ao enviar dados:", err)
+	}
+}
 
 func carMovement(car Car, conn net.Conn) int {
 	for { // Loop infinito para atualizar as posições
@@ -34,16 +58,18 @@ func carMovement(car Car, conn net.Conn) int {
 		// Verifica se a bateria está em nível crítico
 		checkCriticalLevel(car.BatteryLevel, car.ID)
 
-		// Formata os dados como string ("car: [x, y]"). Envia as coordenadas e o nível de bateria
-		data := fmt.Sprintf("%d, %d, %d\n",
-			car.Location[0], car.Location[1], car.BatteryLevel)
+		sendCarData(car, conn)
 
-		// Envia os dados para o servidor
-		_, err := conn.Write([]byte(data))
-		if err != nil {
-			fmt.Println("Erro ao enviar dados:", err)
-			break
-		}
+		// // Formata os dados como string ("car: [x, y]"). Envia as coordenadas e o nível de bateria
+		// data := fmt.Sprintf("%d, %d, %d\n",
+		// 	car.Location[0], car.Location[1], car.BatteryLevel)
+
+		// // Envia os dados para o servidor
+		// _, err := conn.Write([]byte(data))
+		// if err != nil {
+		// 	fmt.Println("Erro ao enviar dados:", err)
+		// 	break
+		// }
 
 		//fmt.Println("Dados enviados:", data)
 	}
