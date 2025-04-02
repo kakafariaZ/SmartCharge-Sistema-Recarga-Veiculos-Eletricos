@@ -112,12 +112,13 @@ func displayBattery(car Car) {
 	batteryPercentage := car.BatteryLevel
 	numHashMarks := (batteryPercentage * totalBars) / 100 // Quantos "#" mostrar
 
-	// Exibe a interface de bateria
-	fmt.Printf("\n     USER    ID: %d\n", car.ID)
-	fmt.Println(" -----------------------")
-	// Usando strings.Repeat para repetir os caracteres
-	fmt.Printf("|%s   |  %d%%\n", strings.Repeat("#", numHashMarks) + strings.Repeat(" ", totalBars - numHashMarks), batteryPercentage)
-	fmt.Println(" -----------------------")
+	// Exibe a interface de bateria com bordas
+	fmt.Printf("\n      USER    ID: %d\n", car.ID)
+	fmt.Println("┌──────────────────────┐")
+	fmt.Printf("│   Bateria: %3d%%      │\n", batteryPercentage)
+	fmt.Println("├──────────────────────┤")
+	fmt.Printf("││%s%s││\n", strings.Repeat("█", numHashMarks), strings.Repeat(" ", totalBars-numHashMarks)) // Usando strings.Repeat para repetir os caracteres
+	fmt.Println("└──────────────────────┘")
 }
 
 
