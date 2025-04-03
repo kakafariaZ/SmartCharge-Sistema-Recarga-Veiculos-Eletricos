@@ -91,22 +91,20 @@ func carMovement(car Car, conn net.Conn) int {
 		// Verifica se a bateria está em nível crítico
 		checkCriticalLevel(car.BatteryLevel, car.ID)
 
-		handleRequests(car, conn) // Lida com as requisições do servidor
+		//handleRequests(car, conn) // Lida com as requisições do servidor
 
-		//sendCarData(car, conn)
+		// Formata os dados como string ("car: [x, y]"). Envia as coordenadas e o nível de bateria
+		data := fmt.Sprintf("%d, %d, %d\n",
+			car.Location[0], car.Location[1], car.BatteryLevel)
 
-		// // Formata os dados como string ("car: [x, y]"). Envia as coordenadas e o nível de bateria
-		// data := fmt.Sprintf("%d, %d, %d\n",
-		// 	car.Location[0], car.Location[1], car.BatteryLevel)
+		// Envia os dados para o servidor
+		_, err := conn.Write([]byte(data))
+		if err != nil {
+			fmt.Println("Erro ao enviar dados:", err)
+			break
+		}
 
-		// // Envia os dados para o servidor
-		// _, err := conn.Write([]byte(data))
-		// if err != nil {
-		// 	fmt.Println("Erro ao enviar dados:", err)
-		// 	break
-		// }
-
-		//fmt.Println("Dados enviados:", data)
+		fmt.Println("Dados enviados:", data)
 
 	}
 

@@ -3,26 +3,34 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net"
 	"os"
-
-	//	"strconv"
-	//	"strings"
-	"math"
-	"sync"
+	"strconv"
 )
 
-var mutex sync.Mutex // Mutex para proteger o acesso à variável station
+// ChargingStation representa um posto de abastecimento de carro elétrico.
+type ChargingStation struct {
+	Type       string  `json:"type"`
+	ID         int     `json:"id"`
+	Name       string  `json:"name"`
+	Location   [2]int  `json:"location"`
+	Occupation bool    `json:"occupation"`
+	Power      int     `json:"power"`
+	Price      float64 `json:"price"`
+}
 
 // Função que calcula a distância entre o carro e os postos e retorna o melhor ponto de recarga
-func calculateStationDistances(carLocation [2]int, stations map[int][2]int) int {
-	var bestStation int
+func calculateStationDistances(carLocation [2]int, stations []ChargingStation) ChargingStation {
+	var bestStation ChargingStation
 	var bestDistance int
 
-	for station, location := range stations {
-		distance := int(math.Sqrt(math.Pow(float64(carLocation[0]-location[0]), 2) +
-			math.Pow(float64(carLocation[1]-location[1]), 2)))
+	// Percorre todas as estações de recarga e calcula a distância
+	for _, station := range stations {
+		distance := int(math.Sqrt(math.Pow(float64(carLocation[0]-station.Location[0]), 2) +
+			math.Pow(float64(carLocation[1]-station.Location[1]), 2)))
 
+		// Se a distância for menor que a melhor distância encontrada, atualiza
 		if bestDistance == 0 || distance < bestDistance {
 			bestDistance = distance
 			bestStation = station
@@ -33,7 +41,7 @@ func calculateStationDistances(carLocation [2]int, stations map[int][2]int) int 
 }
 
 // Função que lê o JSON e retorna um mapa com ID da estação e sua localização
-func LoadStationsFromJSON(filename string) (map[int][2]int, error) {
+func LoadStationsFromJSON(filename string) ([]ChargingStation, error) {
 	// Abrir o arquivo JSON
 	file, err := os.Open(filename)
 	if err != nil {
@@ -48,70 +56,45 @@ func LoadStationsFromJSON(filename string) (map[int][2]int, error) {
 		return nil, err
 	}
 
-	// Criar o dicionário com ID -> Coordenadas
-	stationsMap := make(map[int][2]int)
-
-	// Processar os dados manualmente sem struct
-	if stations, ok := rawData["charge_stations"].([]interface{}); ok {
-		for _, station := range stations {
-			stationMap := station.(map[string]interface{})
-			id := int(stationMap["id"].(float64))
-			locationData := stationMap["location"].([]interface{})
-			location := [2]int{int(locationData[0].(float64)), int(locationData[1].(float64))}
-			stationsMap[id] = location
+	// Criar a lista de ChargingStation
+	var stations []ChargingStation
+	for id, data := range rawData {
+		// Converter o ID para int
+		idInt, err := strconv.Atoi(id)
+		if err != nil {
+			continue // Ignorar IDs inválidos
 		}
+
+		// Extrair o nome da estação
+		name, ok := data.(map[string]interface{})["name"].(string)
+		if !ok {
+			continue // Pula se o nome não for válido
+		}
+
+		// Extrair localização (espera-se um array [x, y])
+		locArray, ok := data.([]interface{})
+		if !ok || len(locArray) != 2 {
+			continue // Pula se a estrutura estiver errada
+		}
+
+		locX, okX := locArray[0].(float64)
+		locY, okY := locArray[1].(float64)
+		if !okX || !okY {
+			continue // Se não forem números válidos, pula
+		}
+
+		// Criar a estação e adicionar à lista
+		stations = append(stations, ChargingStation{
+			ID:       idInt,
+			Name:     name,
+			Location: [2]int{int(locX), int(locY)},
+		})
 	}
 
-	return stationsMap, nil
-}
-
-func requestStationData(conn net.Conn) map[string]interface{} {
-
-	mutex.Lock() // Bloqueia o acesso à variável station
-	defer mutex.Unlock() // Garante que o mutex será desbloqueado ao final da função
-
-	// Cria a estrutura da mensagem de requisição
-	request := map[string]string{"action": "request_station_data"}
-	jsonData, err := json.Marshal(request)
-	if err != nil {
-		fmt.Println("Erro ao criar requisição JSON:", err)
-		return nil
-	}
-
-	// Envia o pedido para o posto
-	fmt.Println("Enviando requisição para o posto...")
-	_, err = conn.Write(jsonData)
-	if err != nil {
-		fmt.Println("Erro ao requisitar dados do posto:", err)
-		return nil
-	}
-
-	// Aguarda resposta do posto
-	buf := make([]byte, 1024)
-	n, err := conn.Read(buf)
-	if err != nil {
-		fmt.Println("Erro ao receber resposta do posto:", err)
-		return nil
-	}
-
-	// Decodifica a mensagem JSON recebida
-	var message_station map[string]interface{}
-	err = json.Unmarshal(buf[:n], &message_station)
-	if err != nil {
-		fmt.Println("Erro ao decodificar JSON:", err)
-		return nil
-	}
-
-	// Exibe os dados recebidos
-	//fmt.Println("Dados do posto recebidos:", message_station)
-
-	return message_station
+	return stations, nil
 }
 
 func requestCarData(conn net.Conn) map[string]interface{} {
-
-	mutex.Lock() // Bloqueia o acesso à variável station
-	defer mutex.Unlock() // Garante que o mutex será desbloqueado ao final da função
 
 	// Cria a estrutura da mensagem de requisição
 	request := map[string]string{"action": "request_car_data"}
@@ -145,33 +128,7 @@ func requestCarData(conn net.Conn) map[string]interface{} {
 		return nil
 	}
 
-	// Exibe os dados recebidos
-	//fmt.Println("Dados do posto recebidos:", message_station)
-
 	return message_car
-}
-
-func messageIdentifier(message map[string]interface{}) string {
-	// Identifica se a conexão é de um carro ou um posto de recarga
-	clientType, ok := message["type"].(string)
-	if !ok {
-		fmt.Println("Mensagem inválida, sem tipo definido.")
-		return clientType
-	}
-
-	// Identifica a origem da mensagem
-	switch clientType {
-	case "car":
-		fmt.Println("Conexão de um carro detectada:", message)
-		//handleCar(conn, message)
-	case "station":
-		fmt.Println("Conexão de um posto de recarga detectada:", message)
-		//handleStation(conn, message)
-	default:
-		fmt.Println("Tipo desconhecido:", clientType)
-	}
-
-	return clientType
 }
 
 // Função para processar os dados enviados pelo cliente
@@ -181,26 +138,8 @@ func handleClient(conn net.Conn) {
 	//buf := make([]byte, 1024) // Buffer para armazenar os dados recebidos
 
 	for {
-		// n, err := conn.Read(buf)
-		// if err != nil {
-		// 	if err == io.EOF {
-		// 		fmt.Println("Cliente desconectado:", conn.RemoteAddr())
-		// 	} else {
-		// 		fmt.Println("Erro ao ler dados:", err)
-		// 	}
-		// 	break
-		// }
-
-		// // Decodifica a mensagem JSON recebida
-		// var message_car map[string]interface{}
-		// err = json.Unmarshal(buf[:n], &message_car)
-		// if err != nil {
-		// 	fmt.Println("Erro ao decodificar JSON:", err)
-		// 	return
-		// }
 
 		message_car := requestCarData(conn) // Requisita os dados do carro
-		messageIdentifier(message_car)      // Identifica o tipo de mensagem recebida
 
 		//id := int(message["id"].(float64)) // Convertendo de JSON (float64) para int
 		batteryLevel := int(message_car["batteryLevel"].(float64))
@@ -212,32 +151,14 @@ func handleClient(conn net.Conn) {
 		}
 
 		// Armazena as localizações do posto na variável
-		// chargeStations, err := LoadStationsFromJSON("charge_stations_data.json")
-		// if err != nil {
-		// 	fmt.Println("Erro ao carregar estações de recarga:", err)
-		// 	return
-		// }
+		chargeStations, err := LoadStationsFromJSON("charge_stations_data.json")
+		if err != nil {
+			fmt.Println("Erro ao carregar estações de recarga:", err)
+			return
+		}
 
 		// Verifica se o nível de bateria está crítico
 		if batteryLevel <= 20 {
-
-			message_station := requestStationData(conn) // Requisita os dados do posto de recarga
-			messageIdentifier(message_station)          // Identifica o tipo de mensagem recebida
-
-			// Transforma a mensagem em um mapa de estações de recarga
-			chargeStations := make(map[int][2]int)
-			if stations, ok := message_station["charge_stations"].([]interface{}); ok {
-				for _, station := range stations {
-					stationMap := station.(map[string]interface{})
-					id := int(stationMap["id"].(float64))
-					locationData := stationMap["location"].([]interface{})
-					location := [2]int{int(locationData[0].(float64)), int(locationData[1].(float64))}
-					chargeStations[id] = location
-				}
-			} else {
-				fmt.Println("Erro ao processar dados do posto de recarga.")
-				return
-			}
 
 			// Se a bateria estiver crítica, chama a função para calcular a estação mais próxima
 			bestStation := calculateStationDistances(carLocation, chargeStations)
@@ -245,14 +166,10 @@ func handleClient(conn net.Conn) {
 			// Exibe o melhor posto de recarga
 			fmt.Printf("Coordenadas recebidas: %d, %d\n", carLocation[0], carLocation[1])
 			fmt.Printf("Nível de bateria crítico: %d%%\n", batteryLevel)
-			fmt.Printf("Melhor Posto de Recarga: %d\n", bestStation)
+			fmt.Printf("Melhor Posto de Recarga: %d\n", bestStation.)
 
 			// Verifica se o posto selecionado está disponível
 		}
-
-		// Exibir os dados recebidos
-		//fmt.Printf("Coordenadas recebidas: %d, %d\n", coord_x, coord_y)
-		//fmt.Printf("Melhor Posto: %d\n", bestStation)
 	}
 }
 
