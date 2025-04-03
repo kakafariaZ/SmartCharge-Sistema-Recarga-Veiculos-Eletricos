@@ -3,10 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"net"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // ChargingStation representa um posto de abastecimento de carro elétrico.
@@ -135,20 +137,47 @@ func requestCarData(conn net.Conn) map[string]interface{} {
 func handleClient(conn net.Conn) {
 	defer conn.Close()
 
-	//buf := make([]byte, 1024) // Buffer para armazenar os dados recebidos
+	buf := make([]byte, 1024) // Buffer para armazenar os dados recebidos
 
 	for {
 
-		message_car := requestCarData(conn) // Requisita os dados do carro
-
-		//id := int(message["id"].(float64)) // Convertendo de JSON (float64) para int
-		batteryLevel := int(message_car["batteryLevel"].(float64))
-		locationInterface := message_car["location"].([]interface{})
-
-		carLocation := [2]int{
-			int(locationInterface[0].(float64)), // Converte cada elemento explicitamente para int
-			int(locationInterface[1].(float64)),
+		/* ====== LÊ OS DADOS DO BUFFER E OS INTERPRETA COMO COORDENADAS ====== */
+		n, err := conn.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				fmt.Println("Cliente desconectado:", conn.RemoteAddr())
+			} else {
+				fmt.Println("Erro ao ler dados:", err)
+			}
+			break
 		}
+
+		// Separando as coordenadas x e y
+		coordinates := strings.Split(string(buf[:n]), ",")
+
+		// Convertendo para números inteiros
+		// coordenada x
+		coord_x, err := strconv.Atoi(strings.TrimSpace(coordinates[0]))
+		if err != nil {
+			fmt.Println("Erro ao converter coordenada x:", err)
+			break
+		}
+
+		// coordenada x
+		coord_y, err := strconv.Atoi(strings.TrimSpace(coordinates[1]))
+		if err != nil {
+			fmt.Println("Erro ao converter coordenada y:", err)
+			break
+		}
+
+		batteryLevel, err := strconv.Atoi(strings.TrimSpace(coordinates[2]))
+		if err != nil {
+			fmt.Println("Erro ao converter nível de bateria:", err)
+			break
+		}
+
+		// Armazena as coordenadas do carro na variável
+		carLocation := [2]int{coord_x, coord_y}
 
 		// Armazena as localizações do posto na variável
 		chargeStations, err := LoadStationsFromJSON("charge_stations_data.json")
@@ -166,7 +195,7 @@ func handleClient(conn net.Conn) {
 			// Exibe o melhor posto de recarga
 			fmt.Printf("Coordenadas recebidas: %d, %d\n", carLocation[0], carLocation[1])
 			fmt.Printf("Nível de bateria crítico: %d%%\n", batteryLevel)
-			fmt.Printf("Melhor Posto de Recarga: %d\n", bestStation.)
+			fmt.Printf("Melhor Posto de Recarga: %s\n", bestStation.Name)
 
 			// Verifica se o posto selecionado está disponível
 		}
