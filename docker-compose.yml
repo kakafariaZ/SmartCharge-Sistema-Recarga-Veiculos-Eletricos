@@ -15,6 +15,8 @@ services: # Define os serviços que serão executados
       - minha-rede
     depends_on:
       - server
+    ports:
+      - "8081:8081" # Mapeia a porta 8081 do host para a porta 8081 do container
 
   client-car: # Define o serviço client
     build: ./client-car

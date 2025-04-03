@@ -52,6 +52,10 @@ func handleRequests(car Car, conn net.Conn) {
 		}
 
 		fmt.Print("Requisição recebida do servidor: ", string(buf[:n]))
+		pause := 1
+		for pause == 1 {
+			pause = 1
+		}
 
 		var request map[string]string
 		err = json.Unmarshal(buf[:n], &request)
