@@ -11,10 +11,10 @@ services: # Define os serviços que serão executados
 
   client-station: # Define o serviço server
     build: ./client-station
-    ports:
-      - "8081:8080"
     networks:
       - minha-rede
+    depends_on:
+      - server
 
   client-car: # Define o serviço client
     build: ./client-car

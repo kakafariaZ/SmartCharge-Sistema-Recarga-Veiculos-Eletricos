@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"time"
 	"strings"
+	"time"
 )
 
 type Car struct {
 	Type string `json:"type"`
-	ID             int    `json:"id"`
+	ID   int    `json:"id"`
 	//User         User   `json:"name"`
-	BatteryLevel   int    `json:"batteryLevel"`
-	Location       [2]int `json:"location"`
+	BatteryLevel int    `json:"batteryLevel"`
+	Location     [2]int `json:"location"`
 }
 
 func sendCarData(car Car, conn net.Conn) {
@@ -40,6 +40,35 @@ func sendCarData(car Car, conn net.Conn) {
 	}
 }
 
+func handleRequests(car Car, conn net.Conn) {
+	defer conn.Close()
+	for {
+		fmt.Println("Aguardando requisição do servidor...")
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			fmt.Println("Erro ao ler requisição do servidor:", err)
+			return
+		}
+
+		fmt.Print("Requisição recebida do servidor: ", string(buf[:n]))
+
+		var request map[string]string
+		err = json.Unmarshal(buf[:n], &request)
+		if err != nil {
+			fmt.Println("Erro ao decodificar requisição:", err)
+			return
+		}
+
+		fmt.Println("Requisição recebida:", request)
+
+		if request["action"] == "request_car_data" {
+			sendCarData(car, conn)
+			fmt.Println("Dados do carro enviados ao servidor.")
+		}
+	}
+}
+
 func carMovement(car Car, conn net.Conn) int {
 	for { // Loop infinito para atualizar as posições
 		time.Sleep(time.Second) // Espera 1 segundo a cada atualização
@@ -58,7 +87,9 @@ func carMovement(car Car, conn net.Conn) int {
 		// Verifica se a bateria está em nível crítico
 		checkCriticalLevel(car.BatteryLevel, car.ID)
 
-		sendCarData(car, conn)
+		handleRequests(car, conn) // Lida com as requisições do servidor
+
+		//sendCarData(car, conn)
 
 		// // Formata os dados como string ("car: [x, y]"). Envia as coordenadas e o nível de bateria
 		// data := fmt.Sprintf("%d, %d, %d\n",
@@ -106,10 +137,9 @@ func getCarID() int {
 	return carID
 }
 
-
 // Função para exibir a barra de bateria no terminal
 func displayBattery(car Car) {
-	totalBars := 20              // Total de "blocos" da barra
+	totalBars := 20 // Total de "blocos" da barra
 	batteryPercentage := car.BatteryLevel
 	numHashMarks := (batteryPercentage * totalBars) / 100 // Quantos "#" mostrar
 
@@ -121,7 +151,6 @@ func displayBattery(car Car) {
 	fmt.Printf("││%s%s││\n", strings.Repeat("█", numHashMarks), strings.Repeat(" ", totalBars-numHashMarks)) // Usando strings.Repeat para repetir os caracteres
 	fmt.Println("└──────────────────────┘")
 }
-
 
 func main() {
 	rand.Seed(time.Now().UnixNano()) // Inicializa a semente aleatória

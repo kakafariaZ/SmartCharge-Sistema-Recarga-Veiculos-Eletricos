@@ -1,4 +1,4 @@
-//atualizado 2
+// atualizado 2
 package main
 
 import (
@@ -67,6 +67,38 @@ func sendStationData(station ChargingStation, conn net.Conn) {
 
 }
 
+func handleRequests(conn net.Conn) {
+	defer conn.Close()
+	for {
+		fmt.Println("Aguardando requisição do servidor...")
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			fmt.Println("Erro ao ler requisição do servidor:", err)
+			return
+		}
+
+		fmt.Print("Requisição recebida do servidor: ", string(buf[:n]))
+
+		var request map[string]string
+		err = json.Unmarshal(buf[:n], &request)
+		if err != nil {
+			fmt.Println("Erro ao decodificar requisição:", err)
+			return
+		}
+
+		fmt.Println("Requisição recebida:", request)
+
+		if request["action"] == "request_station_data" {
+			// Carrega dados do posto
+			station := loadStationData("charge_stations_data.json")
+			fmt.Println("Lendo arquivo JSON do posto...")
+
+			sendStationData(station, conn)
+			fmt.Println("Dados do posto enviados ao servidor.")
+		}
+	}
+}
 
 func main() {
 
@@ -81,18 +113,17 @@ func main() {
 	// Teste de conexão com o servidor
 	fmt.Println("Ponto de Recarga conectando ao servidor...")
 
-	data := loadStationData("charge_stations_data.json")
-	fmt.Println("Lendo arquivo\n")
-		
-	sendStationData(data, conn)
-	fmt.Println("Enviando arquivo\n")
+	// data := loadStationData("charge_stations_data.json")
+	// fmt.Println("Lendo arquivo\n")
 
-	for {
-		// Processa a requisição em uma goroutine para suportar múltiplos clientes
-		
-		
+	// sendStationData(data, conn)
+	// fmt.Println("Enviando arquivo\n")
 
-		//go handleAvailabilityRequest(conn)
-		//go handleLocationRequest(conn)
-	}
+	handleRequests(conn) // Aguarda e responde requisições do servidor
+	// for {
+	// 	// Processa a requisição em uma goroutine para suportar múltiplos clientes
+
+	// 	//go handleAvailabilityRequest(conn)
+	// 	//go handleLocationRequest(conn)
+	// }
 }
