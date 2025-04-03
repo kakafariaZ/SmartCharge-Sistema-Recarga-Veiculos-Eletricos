@@ -72,6 +72,7 @@ func carMovement(car Car, conn net.Conn) int {
 		// }
 
 		//fmt.Println("Dados enviados:", data)
+
 	}
 
 	return car.BatteryLevel
