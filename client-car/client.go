@@ -171,6 +171,7 @@ func main() {
 		},
 	}
 
+
 	// Conecta ao servidor na porta 8080
 	conn, err := net.Dial("tcp", "server:8080")
 	if err != nil {
@@ -182,6 +183,24 @@ func main() {
 	// Teste de conexão com o servidor
 	fmt.Printf("🚗 Carro %d conectado ao servidor!\n", car.ID)
 
+	// Envia identificação como carro
+	ident := map[string]interface{}{
+		"type": "car",
+		"id":   car.ID,
+	}
+	jsonData, err := json.Marshal(ident)
+	if err != nil {
+		fmt.Println("Erro ao converter identificação para JSON:", err)
+		return
+	}
+	_, err = conn.Write(jsonData)
+	if err != nil {
+		fmt.Println("Erro ao enviar identificação:", err)
+		return
+	}
+	
+	// ✅ Rodar o handleRequests em uma goroutine separada
+	go handleRequests(car, conn)
 	// Inicia a movimentação dos carros. Atualiza e envia as coordenadas ao servidor
 	carMovement(car, conn)
 }

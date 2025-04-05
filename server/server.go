@@ -9,7 +9,28 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
+
+// Adicione estas estruturas no início do arquivo
+type ClientType int
+
+const (
+	CarType ClientType = iota
+	StationType
+)
+
+type ClientConnection struct {
+	Conn net.Conn
+	Type ClientType
+	ID   int
+}
+
+var (
+	connections     []ClientConnection
+	connectionsLock sync.Mutex
+)
+
 
 // ChargingStation representa um posto de abastecimento de carro elétrico.
 type ChargingStation struct {
@@ -142,72 +163,177 @@ func requestStation(conn net.Conn, stations []ChargingStation, bestStation int) 
 func handleClient(conn net.Conn) {
 	defer conn.Close()
 
-	buf := make([]byte, 1024) // Buffer para armazenar os dados recebidos
+	// Primeiro, identifique se é um carro ou um posto se conectando
+	buf := make([]byte, 1024)
+	n, err := conn.Read(buf)
+	if err != nil {
+		fmt.Println("Erro ao ler dados de identificação:", err)
+		return
+	}
 
-	// Armazena as localizações do posto na variável
+	var clientData map[string]interface{}
+	err = json.Unmarshal(buf[:n], &clientData)
+	if err != nil {
+		fmt.Println("Erro ao decodificar dados de identificação:", err)
+		return
+	}
+
+	clientType, ok := clientData["type"].(string)
+	if !ok {
+		fmt.Println("Tipo de cliente não especificado")
+		return
+	}
+
+	var clientID int
+	if id, ok := clientData["id"].(float64); ok {
+		clientID = int(id)
+	}
+
+	var cType ClientType
+	if clientType == "car" {
+		cType = CarType
+		fmt.Printf("Carro %d conectado\n", clientID)
+	} else if clientType == "station" {
+		cType = StationType
+		fmt.Printf("Posto de recarga %d conectado\n", clientID)
+	} else {
+		fmt.Println("Tipo de cliente desconhecido:", clientType)
+		return
+	}
+
+	// Registre a conexão
+	connectionsLock.Lock()
+	connections = append(connections, ClientConnection{
+		Conn: conn,
+		Type: cType,
+		ID:   clientID,
+	})
+	connectionsLock.Unlock()
+
+	// Se for um carro, processe seus dados
+	if cType == CarType {
+		processCarData(conn, clientID)
+	} else if cType == StationType {
+		processStationData(conn, clientID)
+	}
+}
+
+func processCarData(conn net.Conn, carID int) {
+	buf := make([]byte, 1024)
 	chargeStations, err := LoadStationsFromJSON("charge_stations_data.json")
 	if err != nil {
 		fmt.Println("Erro ao carregar estações de recarga:", err)
 		return
 	}
-	//fmt.Print(chargeStations, "\n")
 
 	for {
-
-		/* ====== LÊ OS DADOS DO BUFFER E OS INTERPRETA COMO COORDENADAS ====== */
 		n, err := conn.Read(buf)
 		if err != nil {
 			if err == io.EOF {
-				fmt.Println("Cliente desconectado:", conn.RemoteAddr())
+				fmt.Printf("Carro %d desconectado\n", carID)
 			} else {
-				fmt.Println("Erro ao ler dados:", err)
+				fmt.Printf("Erro ao ler dados do carro %d: %v\n", carID, err)
 			}
+			removeConnection(conn)
 			break
 		}
 
-		// Separando as coordenadas x e y
 		coordinates := strings.Split(string(buf[:n]), ",")
+		if len(coordinates) < 3 {
+			continue
+		}
 
-		// Convertendo para números inteiros
-		// coordenada x
 		coord_x, err := strconv.Atoi(strings.TrimSpace(coordinates[0]))
 		if err != nil {
 			fmt.Println("Erro ao converter coordenada x:", err)
-			break
+			continue
 		}
 
-		// coordenada x
 		coord_y, err := strconv.Atoi(strings.TrimSpace(coordinates[1]))
 		if err != nil {
 			fmt.Println("Erro ao converter coordenada y:", err)
-			break
+			continue
 		}
 
 		batteryLevel, err := strconv.Atoi(strings.TrimSpace(coordinates[2]))
 		if err != nil {
 			fmt.Println("Erro ao converter nível de bateria:", err)
-			break
+			continue
 		}
 
-		// Armazena as coordenadas do carro na variável
 		carLocation := [2]int{coord_x, coord_y}
 
-		// Verifica se o nível de bateria está crítico
 		if batteryLevel <= 20 {
-
-			// Se a bateria estiver crítica, chama a função para calcular a estação mais próxima
 			bestStation := calculateStationDistances(carLocation, chargeStations)
+			fmt.Printf("Carro %d - Bateria crítica: %d%%. Melhor Posto: %d\n", 
+				carID, batteryLevel, bestStation.ID)
 
-			// Exibe o melhor posto de recarga
-			fmt.Printf("Coordenadas recebidas: %d, %d\n", carLocation[0], carLocation[1])
-			fmt.Printf("Nível de bateria crítico: %d%%\n", batteryLevel)
-			fmt.Printf("Melhor Posto de Recarga: %d\n", bestStation.ID)
-
-			// Verifica se o posto selecionado está disponível
-			requestStation(conn, chargeStations, bestStation.ID) // Envia a requisição para o posto
+			sendToStation(bestStation.ID, carID, carLocation)
 		}
 	}
 }
+
+func processStationData(conn net.Conn, stationID int) {
+	// Mantém a conexão aberta para receber requisições
+	buf := make([]byte, 1024)
+	for {
+		_, err := conn.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				fmt.Printf("Posto %d desconectado\n", stationID)
+			} else {
+				fmt.Printf("Erro ao ler dados do posto %d: %v\n", stationID, err)
+			}
+			removeConnection(conn)
+			break
+		}
+	}
+}
+
+func sendToStation(stationID int, carID int, carLocation [2]int) {
+	connectionsLock.Lock()
+	defer connectionsLock.Unlock()
+
+	for _, c := range connections {
+		if c.Type == StationType && c.ID == stationID {
+			request := map[string]interface{}{
+				"action":       "request_station_data",
+				"car_id":       carID,
+				"car_location": carLocation,
+			}
+			
+			jsonData, err := json.Marshal(request)
+			if err != nil {
+				fmt.Println("Erro ao criar requisição JSON:", err)
+				return
+			}
+
+			_, err = c.Conn.Write(jsonData)
+			if err != nil {
+				fmt.Println("Erro ao enviar requisição para o posto:", err)
+			} else {
+				fmt.Printf("Requisição enviada para o posto %d sobre o carro %d\n", 
+					stationID, carID)
+			}
+			return
+		}
+	}
+	
+	fmt.Printf("Posto %d não encontrado entre as conexões ativas\n", stationID)
+}
+
+func removeConnection(conn net.Conn) {
+	connectionsLock.Lock()
+	defer connectionsLock.Unlock()
+
+	for i, c := range connections {
+		if c.Conn == conn {
+			connections = append(connections[:i], connections[i+1:]...)
+			break
+		}
+	}
+}
+
 
 func main() {
 	listener, err := net.Listen("tcp", ":8080") // Cria um servidor TCP escutando na porta 8080
