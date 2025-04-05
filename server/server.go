@@ -31,7 +31,6 @@ var (
 	connectionsLock sync.Mutex
 )
 
-
 // ChargingStation representa um posto de abastecimento de carro elétrico.
 type ChargingStation struct {
 	ID         int     `json:"id"`
@@ -265,7 +264,7 @@ func processCarData(conn net.Conn, carID int) {
 
 		if batteryLevel <= 20 {
 			bestStation := calculateStationDistances(carLocation, chargeStations)
-			fmt.Printf("Carro %d - Bateria crítica: %d%%. Melhor Posto: %d\n", 
+			fmt.Printf("Carro %d - Bateria crítica: %d%%. Melhor Posto: %d\n",
 				carID, batteryLevel, bestStation.ID)
 
 			sendToStation(bestStation.ID, carID, carLocation)
@@ -297,11 +296,12 @@ func sendToStation(stationID int, carID int, carLocation [2]int) {
 	for _, c := range connections {
 		if c.Type == StationType && c.ID == stationID {
 			request := map[string]interface{}{
-				"action":       "request_station_data",
-				"car_id":       carID,
-				"car_location": carLocation,
+				"action":        "request_station_data",
+				"best_station_id": stationID,
+				"car_id":        carID,
+				"car_location":  carLocation,
 			}
-			
+
 			jsonData, err := json.Marshal(request)
 			if err != nil {
 				fmt.Println("Erro ao criar requisição JSON:", err)
@@ -312,13 +312,13 @@ func sendToStation(stationID int, carID int, carLocation [2]int) {
 			if err != nil {
 				fmt.Println("Erro ao enviar requisição para o posto:", err)
 			} else {
-				fmt.Printf("Requisição enviada para o posto %d sobre o carro %d\n", 
+				fmt.Printf("Requisição enviada para o posto %d sobre o carro %d\n",
 					stationID, carID)
 			}
 			return
 		}
 	}
-	
+
 	fmt.Printf("Posto %d não encontrado entre as conexões ativas\n", stationID)
 }
 
@@ -333,7 +333,6 @@ func removeConnection(conn net.Conn) {
 		}
 	}
 }
-
 
 func main() {
 	listener, err := net.Listen("tcp", ":8080") // Cria um servidor TCP escutando na porta 8080
