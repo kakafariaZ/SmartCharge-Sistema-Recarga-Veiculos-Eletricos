@@ -10,51 +10,116 @@ import (
 )
 
 type Car struct {
-	Type string `json:"type"`
-	ID   int    `json:"id"`
-	//User         User   `json:"name"`
+	Type         string `json:"type"`
+	ID           int    `json:"id"`
 	BatteryLevel int    `json:"batteryLevel"`
 	Location     [2]int `json:"location"`
 }
 
-func sendCarData(car Car, conn net.Conn) {
-	// Criando a estrutura da mensagem
-	message := Car{
-		Type:         "car",
+type CarState struct {
+	ID           int
+	Location     [2]int
+	BatteryLevel int
+	Status       string // "normal", "critico"
+}
+
+func main() {
+	rand.Seed(time.Now().UnixNano())
+
+	carID := getCarID()
+
+	car := Car{
+		ID:           carID,
+		BatteryLevel: rand.Intn(51) + 50,
+		Location:     [2]int{rand.Intn(100), rand.Intn(100)},
+	}
+
+	carState := &CarState{
 		ID:           car.ID,
 		Location:     car.Location,
 		BatteryLevel: car.BatteryLevel,
+		Status:       "normal",
 	}
 
-	// Convertendo para JSON
-	jsonData, err := json.Marshal(message)
+	conn, err := net.Dial("tcp", "server:8080")
 	if err != nil {
-		fmt.Println("Erro ao converter para JSON:", err)
-		return
+		panic(err)
 	}
+	defer conn.Close()
 
-	// Enviando JSON para o servidor
-	_, err = conn.Write(jsonData)
-	if err != nil {
-		fmt.Println("Erro ao enviar dados:", err)
+	fmt.Printf("\n🚗 Carro %d conectado ao servidor!\n", car.ID)
+
+	ident := map[string]interface{}{
+		"type": "car",
+		"id":   car.ID,
+	}
+	jsonData, _ := json.Marshal(ident)
+	conn.Write(jsonData)
+
+	criticalChan := make(chan CarState)
+
+	go handleRequests(car, conn)
+	go carMovement(carState, criticalChan)
+	go handleCriticalData(conn, criticalChan)
+
+	select {} // Mantém o programa rodando
+}
+
+
+// ===================== GOROUTINES =========================
+
+/*
+	 Essas goroutines funcionam simultaneamente, ou seja, o carro está:
+	 - Movendo-se
+	 - Ouvindo requisições do servidor
+	 - Enviando dados críticos para o servidor
+*/
+
+func carMovement(car *CarState, criticalChan chan CarState) {
+	for {
+		time.Sleep(time.Second)
+
+		if car.Status == "normal" {
+			car.Location[0] += rand.Intn(11)
+			car.Location[1] += rand.Intn(11)
+			car.BatteryLevel = batteryLevel(car.BatteryLevel)
+
+			displayBattery(*car)
+
+			if car.BatteryLevel <= 20 {
+				car.Status = "critico"
+				fmt.Println("⚠️  ALERTA! 🚨 Bateria crítica! ")
+				criticalChan <- *car
+				continue
+			}
+
+			fmt.Printf("📍 Coordenadas: %v\n", car.Location)
+		}
+	}
+}
+
+func handleCriticalData(conn net.Conn, criticalChan chan CarState) {
+	for {
+		carCritical := <-criticalChan
+		data := fmt.Sprintf("%d, %d, %d\n", carCritical.Location[0], carCritical.Location[1], carCritical.BatteryLevel)
+
+		_, err := conn.Write([]byte(data))
+		if err != nil {
+			fmt.Println("Erro ao enviar dados críticos:", err)
+			return
+		}
+		fmt.Println("\n✅ Dados críticos enviados ao servidor:", data)
 	}
 }
 
 func handleRequests(car Car, conn net.Conn) {
 	defer conn.Close()
 	for {
-		fmt.Println("Aguardando requisição do servidor...")
 		buf := make([]byte, 1024)
 		n, err := conn.Read(buf)
 		if err != nil {
 			fmt.Println("Erro ao ler requisição do servidor:", err)
 			return
-		}
-
-		fmt.Print("Requisição recebida do servidor: ", string(buf[:n]))
-		pause := 1
-		for pause == 1 {
-			pause = 1
 		}
 
 		var request map[string]string
@@ -64,8 +129,6 @@ func handleRequests(car Car, conn net.Conn) {
 			return
 		}
 
-		fmt.Println("Requisição recebida:", request)
-
 		if request["action"] == "request_car_data" {
 			sendCarData(car, conn)
 			fmt.Println("Dados do carro enviados ao servidor.")
@@ -73,134 +136,37 @@ func handleRequests(car Car, conn net.Conn) {
 	}
 }
 
-func carMovement(car Car, conn net.Conn) int {
-	for { // Loop infinito para atualizar as posições
-		time.Sleep(time.Second) // Espera 1 segundo a cada atualização
+// ===================== AUXILIARES =========================
 
-		/* Atualizando as coordenadas */
-		// Atualiza a posição do carro
-		car.Location[0] += rand.Intn(11) // Movimento no eixo X
-		car.Location[1] += rand.Intn(11) // Movimento no eixo Y
-
-		// Atualiza o nível da bateria
-		car.BatteryLevel = batteryLevel(car.BatteryLevel)
-
-		// Exibe a bateria no terminal
-		displayBattery(car)
-
-		// Verifica se a bateria está em nível crítico
-		checkCriticalLevel(car.BatteryLevel, car.ID)
-
-		//handleRequests(car, conn) // Lida com as requisições do servidor
-
-		// Formata os dados como string ("car: [x, y]"). Envia as coordenadas e o nível de bateria
-		data := fmt.Sprintf("%d, %d, %d\n",
-			car.Location[0], car.Location[1], car.BatteryLevel)
-
-		// Envia os dados para o servidor
-		_, err := conn.Write([]byte(data))
-		if err != nil {
-			fmt.Println("Erro ao enviar dados:", err)
-			break
-		}
-
-		fmt.Println("Dados enviados:", data)
-
-	}
-
-	return car.BatteryLevel
-}
-
-// Atualiza o nível da bateria do carro
 func batteryLevel(batteryLevel int) int {
-	//batteryConsumption := rand.Intn(11) // Consumo de bateria aleatório de 0% a 10%
-	batteryLevel -= 5 // Diminui a bateria
-
+	batteryLevel -= 5
 	if batteryLevel <= 20 {
-		batteryLevel = 20 // Garante que não fique negativo
+		batteryLevel = 20
 	}
-
-	fmt.Println("Nível de bateria:", batteryLevel)
-
 	return batteryLevel
 }
 
-// Verifica se a bateria está em nível crítico
-func checkCriticalLevel(batteryLevel int, carID int) {
-	if batteryLevel <= 20 {
-		fmt.Printf("⚠️  ALERTA: --- CARRO %d --- Bateria em nível crítico! 🚨 Nível de Bateria: %d%%\n", carID, batteryLevel)
+func sendCarData(car Car, conn net.Conn) {
+	jsonData, err := json.Marshal(car)
+	if err != nil {
+		fmt.Println("Erro ao converter para JSON:", err)
+		return
 	}
+	conn.Write(jsonData)
 }
 
-func getCarID() int {
-	// Pegamos um número aleatório baseado no timestamp atual
-	carID := int(time.Now().UnixNano() % 10000) // Pegamos os últimos 4 dígitos
-	fmt.Printf("🆔 ID do carro gerado: %d\n", carID)
-	return carID
-}
+func displayBattery(car CarState) {
+	totalBars := 20
+	numHashMarks := (car.BatteryLevel * totalBars) / 100
 
-// Função para exibir a barra de bateria no terminal
-func displayBattery(car Car) {
-	totalBars := 20 // Total de "blocos" da barra
-	batteryPercentage := car.BatteryLevel
-	numHashMarks := (batteryPercentage * totalBars) / 100 // Quantos "#" mostrar
-
-	// Exibe a interface de bateria com bordas
-	fmt.Printf("\n      USER    ID: %d\n", car.ID)
+	fmt.Printf("\n     🚗 ID: %d\n", car.ID)
 	fmt.Println("┌──────────────────────┐")
-	fmt.Printf("│   Bateria: %3d%%      │\n", batteryPercentage)
+	fmt.Printf("│   Bateria: %3d%%      │\n", car.BatteryLevel)
 	fmt.Println("├──────────────────────┤")
-	fmt.Printf("││%s%s││\n", strings.Repeat("█", numHashMarks), strings.Repeat(" ", totalBars-numHashMarks)) // Usando strings.Repeat para repetir os caracteres
+	fmt.Printf("││%s%s││\n", strings.Repeat("█", numHashMarks), strings.Repeat(" ", totalBars-numHashMarks))
 	fmt.Println("└──────────────────────┘")
 }
 
-func main() {
-	rand.Seed(time.Now().UnixNano()) // Inicializa a semente aleatória
-
-	// Obtém o ID do carro da variável de ambiente
-	carID := getCarID()
-
-	// Criando os carros; Nível inicial da bateria (100%)
-	car := Car{
-		ID: carID,
-		//User: models.User{Name: "João"},
-		BatteryLevel: rand.Intn(51) + 50, // Bateria entre 50% e 100%
-		Location: [2]int{
-			rand.Intn(100),
-			rand.Intn(100),
-		},
-	}
-
-
-	// Conecta ao servidor na porta 8080
-	conn, err := net.Dial("tcp", "server:8080")
-	if err != nil {
-		panic(err)
-	}
-
-	defer conn.Close() // Fecha a conexão
-
-	// Teste de conexão com o servidor
-	fmt.Printf("🚗 Carro %d conectado ao servidor!\n", car.ID)
-
-	// Envia identificação como carro
-	ident := map[string]interface{}{
-		"type": "car",
-		"id":   car.ID,
-	}
-	jsonData, err := json.Marshal(ident)
-	if err != nil {
-		fmt.Println("Erro ao converter identificação para JSON:", err)
-		return
-	}
-	_, err = conn.Write(jsonData)
-	if err != nil {
-		fmt.Println("Erro ao enviar identificação:", err)
-		return
-	}
-	
-	// ✅ Rodar o handleRequests em uma goroutine separada
-	go handleRequests(car, conn)
-	// Inicia a movimentação dos carros. Atualiza e envia as coordenadas ao servidor
-	carMovement(car, conn)
+func getCarID() int {
+	return int(time.Now().UnixNano() % 10000)
 }

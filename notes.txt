@@ -16,3 +16,20 @@ docker-compose up --scale client-car=2
 - Incluir disponibilidade no cálculo do melhor posto
 - Recarga do carro
 - Pagamento
+
+COMANDOS PARA EXECUTAR SEPARADAMENTE
+-> Servidor:
+    docker-compose up server
+-> Posto:
+    docker-compose client-staion
+-> Carro:
+    docker-compose up client-car
+    OBS.: Inicia com 3 carros já que foi definido 3 instâncias no docker-compose
+    
+
+Cada carro SEPARADAMENTE: === tem que mudar no compose antes ==
+docker-compose run --service-ports --name car1 client-car
+docker-compose run --service-ports --name car2 client-car
+
+
+docker-compose run --service-ports client-car
