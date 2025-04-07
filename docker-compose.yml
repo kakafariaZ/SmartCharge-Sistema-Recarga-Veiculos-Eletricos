@@ -15,9 +15,10 @@ services: # Define os serviços que serão executados
       - minha-rede
     depends_on:
       - server
-    ports:
-      - "8081:8081" # Mapeia a porta 8081 do host para a porta 8081 do container
-      
+    deploy:
+      replicas: 5 # Define o número de réplicas do serviço client
+    environment:
+      - STATION_ID=${HOSTNAME}
 
   client-car: # Define o serviço client
     build: ./client-car

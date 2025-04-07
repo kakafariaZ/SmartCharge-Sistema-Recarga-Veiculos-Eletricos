@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"os"
+	"math/rand"
+	"time"
 )
 
 type Station struct {
@@ -56,6 +59,88 @@ func (q *QueueManager) IsAvailable() bool {
 	return q.Count() == 0
 }
 
+// Função para obter o ID do ponto de recarga, garantindo que não se repita
+func getStationID() int {
+	// Lê o arquivo JSON com os IDs já usados
+	file, err := os.Open("used_ids.json")
+	if err != nil {
+		// Se o arquivo não existir, cria um novo arquivo com uma lista vazia de IDs
+		if os.IsNotExist(err) {
+			file, err = os.Create("used_ids.json")
+			if err != nil {
+				fmt.Println("Erro ao criar o arquivo:", err)
+				return -1
+			}
+			// Inicializa com uma lista vazia de IDs usados
+			json.NewEncoder(file).Encode(map[string][]int{"used_ids": []int{}})
+			file.Close()
+			file, err = os.Open("used_ids.json")
+			if err != nil {
+				fmt.Println("Erro ao ler o arquivo:", err)
+				return -1
+			}
+		} else {
+			fmt.Println("Erro ao abrir o arquivo:", err)
+			return -1
+		}
+	}
+	defer file.Close()
+
+	// Lê os IDs usados a partir do arquivo
+	var data map[string][]int
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(&data)
+	if err != nil {
+		fmt.Println("Erro ao decodificar o arquivo:", err)
+		return -1
+	}
+
+	// Gera um ID aleatório entre 1 e 5
+	rand.Seed(time.Now().UnixNano())
+	var newID int
+	usedIDs := data["used_ids"]
+
+	// Garante que o novo ID não tenha sido utilizado antes
+	for {
+		newID = rand.Intn(5) + 1
+		if !contains(usedIDs, newID) {
+			break
+		}
+	}
+
+	// Adiciona o novo ID à lista de usados
+	usedIDs = append(usedIDs, newID)
+	// Exibi a lista de IDs usados
+	fmt.Printf("IDs usados: %v\n", usedIDs)
+
+	// Atualiza o arquivo com a lista de IDs usados
+	file, err = os.Create("used_ids.json")
+	if err != nil {
+		fmt.Println("Erro ao criar o arquivo:", err)
+		return -1
+	}
+	defer file.Close()
+	data["used_ids"] = usedIDs
+	err = json.NewEncoder(file).Encode(data)
+	if err != nil {
+		fmt.Println("Erro ao codificar o arquivo:", err)
+		return -1
+	}
+	fmt.Printf("Novo ID de estação gerado: %d\n", newID)
+
+	return newID
+}
+
+// Função auxiliar para verificar se um ID já foi usado
+func contains(ids []int, id int) bool {
+	for _, v := range ids {
+		if v == id {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
 
 	// Conecta ao servidor na porta 8080
@@ -67,29 +152,29 @@ func main() {
 
 	queue := &QueueManager{}
 
-	// Loop para criar 5 instâncias de postos com IDs de 1 a 5
-    for i := 1; i <= 5; i++ {
-        // Criação da estação com ID variável
-        station := Station{
-            Type: "station",
-            ID:   i, // A ID será variável de 1 a 5
-        }
+	// Pega o ID do ponto de recarga a partir do ID do container	
+	stationID := getStationID()
 
-        jsonData, err := json.Marshal(station)
-        if err != nil {
-            fmt.Println("Erro ao converter identificação para JSON:", err)
-            return
-        }
+	station := Station{
+		Type: "station",
+		ID:   stationID, // Pode vir de config/env
+	}
 
-        _, err = conn.Write(jsonData)
-        if err != nil {
-            fmt.Println("Erro ao enviar identificação:", err)
-            return
-        }
+	jsonData, err := json.Marshal(station)
+	if err != nil {
+		fmt.Println("Erro ao converter identificação para JSON:", err)
+		return
+	}
 
-        fmt.Printf("✅ Posto de Recarga %d conectado ao servidor...\n", i)
-    }
+	_, err = conn.Write(jsonData)
+	if err != nil {
+		fmt.Println("Erro ao enviar identificação:", err)
+		return
+	}
 
+	fmt.Printf("✅ Ponto de Recarga %d conectado ao servidor...", station.ID)
+
+	// Loop para receber requisições do servidor
 	for {
 		buf := make([]byte, 1024)
 		n, err := conn.Read(buf)
@@ -121,7 +206,7 @@ func main() {
 			// Envia resposta ao servidor com status do posto
 			status := StationStatus{
 				Type:       "station_status",
-				StationID:  station.ID,
+				StationID:  bestStation,
 				CarsInLine: queue.Count(),
 				Available:  queue.IsAvailable(),
 			}

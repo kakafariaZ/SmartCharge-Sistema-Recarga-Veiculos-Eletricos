@@ -113,49 +113,6 @@ func LoadStationsFromJSON(filename string) ([]ChargingStation, error) {
 	return stations, nil
 }
 
-// func requestStation(conn net.Conn, stations []ChargingStation, bestStation int) {
-
-// 	// Cria a estrutura da mensagem de requisição
-// 	request := map[string]string{"action": "request_station_data"}
-// 	for _, station := range stations {
-// 		if station.ID == bestStation {
-// 			request["station_id"] = strconv.Itoa(station.ID)
-// 			request["station_name"] = station.Name
-// 		}
-// 	}
-// 	jsonData, err := json.Marshal(request)
-// 	if err != nil {
-// 		fmt.Println("Erro ao criar requisição JSON:", err)
-// 		return
-// 	}
-
-// 	// Envia o pedido para o posto
-// 	fmt.Println("Enviando requisição para o posto...")
-// 	_, err = conn.Write(jsonData)
-// 	if err != nil {
-// 		fmt.Println("Erro ao requisitar:", err)
-// 		return
-// 	}
-
-// 	// // Aguarda resposta do posto
-// 	// buf := make([]byte, 1024)
-// 	// n, err := conn.Read(buf)
-// 	// if err != nil {
-// 	// 	fmt.Println("Erro ao receber resposta do carro:", err)
-// 	// 	return
-// 	// }
-
-// 	// // Decodifica a mensagem JSON recebida
-// 	// var message_car map[string]interface{}
-// 	// err = json.Unmarshal(buf[:n], &message_car)
-// 	// if err != nil {
-// 	// 	fmt.Println("Erro ao decodificar JSON:", err)
-// 	// 	return
-// 	// }
-
-// 	return
-// }
-
 // Função para processar os dados enviados pelo cliente
 func handleClient(conn net.Conn) {
 	defer conn.Close()
@@ -299,8 +256,11 @@ func sendToStation(stationID int, carID int, carLocation [2]int) {
 		// ao ID do posto de recarga
 		// Se sim, envia a requisição
 		// Se não, continua verificando as outras conexões
+
+		fmt.Printf("Verificando conexão: %d\n", c.ID)
 		
 		if c.Type == StationType && c.ID == stationID {
+			fmt.Printf("Conexão encontrada para o posto")
 			request := map[string]interface{}{
 				"action":        "request_station_data",
 				"best_station_id": stationID,
