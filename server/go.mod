@@ -1,3 +1,3 @@
-module github.com/yourusername/SmartCharge-Sistema-Recarga-Veiculos-Eletricos/server
+module server
 
 go 1.21.3

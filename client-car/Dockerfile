@@ -1,8 +1,9 @@
-FROM golang:1.21.3
+FROM golang:1.24.1
 
 WORKDIR /app
 COPY . .
 
-RUN go build -o client
+RUN go mod tidy
+RUN go build -o client-car
 
-CMD ["./client"]
+CMD ["./client-car"]

@@ -1,20 +1,32 @@
-# Description: Arquivo de configuração do Docker Compose  
-version: "2.29.1"
+# Description: Arquivo de configuração do Docker Compose
 
-services:
-  station:  # Nome mais apropriado para o posto
-    build: ./client-station
+
+services: # Define os serviços que serão executados
+  server: # Define o serviço server
+    build: ./server
     ports:
       - "8080:8080"
     networks:
       - minha-rede
 
-  client:
+  client-station: # Define o serviço server
+    build: ./client-station
+    networks:
+      - minha-rede
+    depends_on:
+      - server
+    ports:
+      - "8081:8081" # Mapeia a porta 8081 do host para a porta 8081 do container
+      
+
+  client-car: # Define o serviço client
     build: ./client-car
     networks:
       - minha-rede
     depends_on:
-      - station
+      - server
+    deploy:
+      replicas: 3 # Define o número de réplicas do serviço client
 
 networks: # Define as redes que serão utilizadas
   minha-rede:
