@@ -1,0 +1,44 @@
+{
+    "charge_stations": [
+        {
+        "id": 1,
+        "name": "Charge Station Alpha",
+        "location": [50, 50],
+        "occupation": true,
+        "power": 50,
+        "price": 0.25
+        },
+        {
+        "id": 2,
+        "name": "Charge Station Beta",
+        "location": [100, 100],
+        "occupation": false,
+        "power": 100,
+        "price": 0.30
+        },
+        {
+        "id": 3,
+        "name": "Charge Station Gamma",
+        "location": [150, 150],
+        "occupation": true,
+        "power": 150,
+        "price": 0.35
+        },
+        {
+        "id": 4,
+        "name": "Charge Station Delta",
+        "location": [200, 200],
+        "occupation": false,
+        "power": 200,
+        "price": 0.40
+        },
+        {
+        "id": 5,
+        "name": "Charge Station Epsilon",
+        "location": [250, 250],
+        "occupation": true,
+        "power": 250,
+        "price": 0.45
+        }
+    ]
+}

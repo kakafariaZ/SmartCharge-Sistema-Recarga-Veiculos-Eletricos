@@ -9,50 +9,15 @@ services: # Define os serviços que serão executados
     networks:
       - minha-rede
 
-  client-station-1: # Define o serviço server
+  client-station: # Define o serviço server
     build: ./client-station
     networks:
       - minha-rede
     depends_on:
       - server
-    environment:
-       - STATION_ID=1
-
-  client-station-2: # Define o serviço server
-    build: ./client-station
-    networks:
-      - minha-rede
-    depends_on:
-      - server
-    environment:
-       - STATION_ID=2
-
-  client-station-3: # Define o serviço server
-    build: ./client-station
-    networks:
-      - minha-rede
-    depends_on:
-      - server
-    environment:
-       - STATION_ID=3
-
-  client-station-4: # Define o serviço server
-    build: ./client-station
-    networks:
-      - minha-rede
-    depends_on:
-      - server
-    environment:
-       - STATION_ID=4
-
-  client-station-5: # Define o serviço server
-    build: ./client-station
-    networks:
-      - minha-rede
-    depends_on:
-      - server
-    environment:
-       - STATION_ID=5
+    ports:
+      - "8081:8081" # Mapeia a porta 8081 do host para a porta 8081 do container
+      
 
   client-car: # Define o serviço client
     build: ./client-car
