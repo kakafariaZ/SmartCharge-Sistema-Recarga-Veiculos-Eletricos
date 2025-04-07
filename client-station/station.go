@@ -6,9 +6,11 @@ import (
 	"net"
 	"sync"
 	"os"
-	"math/rand"
-	"time"
+	"strconv"
 )
+
+// Mutex para garantir que apenas uma instância acesse o arquivo por vez
+var mu sync.Mutex
 
 type Station struct {
 	Type string `json:"type"`
@@ -61,84 +63,18 @@ func (q *QueueManager) IsAvailable() bool {
 
 // Função para obter o ID do ponto de recarga, garantindo que não se repita
 func getStationID() int {
-	// Lê o arquivo JSON com os IDs já usados
-	file, err := os.Open("used_ids.json")
-	if err != nil {
-		// Se o arquivo não existir, cria um novo arquivo com uma lista vazia de IDs
-		if os.IsNotExist(err) {
-			file, err = os.Create("used_ids.json")
-			if err != nil {
-				fmt.Println("Erro ao criar o arquivo:", err)
-				return -1
-			}
-			// Inicializa com uma lista vazia de IDs usados
-			json.NewEncoder(file).Encode(map[string][]int{"used_ids": []int{}})
-			file.Close()
-			file, err = os.Open("used_ids.json")
-			if err != nil {
-				fmt.Println("Erro ao ler o arquivo:", err)
-				return -1
-			}
-		} else {
-			fmt.Println("Erro ao abrir o arquivo:", err)
-			return -1
-		}
-	}
-	defer file.Close()
-
-	// Lê os IDs usados a partir do arquivo
-	var data map[string][]int
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&data)
-	if err != nil {
-		fmt.Println("Erro ao decodificar o arquivo:", err)
-		return -1
-	}
-
-	// Gera um ID aleatório entre 1 e 5
-	rand.Seed(time.Now().UnixNano())
-	var newID int
-	usedIDs := data["used_ids"]
-
-	// Garante que o novo ID não tenha sido utilizado antes
-	for {
-		newID = rand.Intn(5) + 1
-		if !contains(usedIDs, newID) {
-			break
-		}
-	}
-
-	// Adiciona o novo ID à lista de usados
-	usedIDs = append(usedIDs, newID)
-	// Exibi a lista de IDs usados
-	fmt.Printf("IDs usados: %v\n", usedIDs)
-
-	// Atualiza o arquivo com a lista de IDs usados
-	file, err = os.Create("used_ids.json")
-	if err != nil {
-		fmt.Println("Erro ao criar o arquivo:", err)
-		return -1
-	}
-	defer file.Close()
-	data["used_ids"] = usedIDs
-	err = json.NewEncoder(file).Encode(data)
-	if err != nil {
-		fmt.Println("Erro ao codificar o arquivo:", err)
-		return -1
-	}
-	fmt.Printf("Novo ID de estação gerado: %d\n", newID)
-
-	return newID
-}
-
-// Função auxiliar para verificar se um ID já foi usado
-func contains(ids []int, id int) bool {
-	for _, v := range ids {
-		if v == id {
-			return true
-		}
-	}
-	return false
+    stationID := os.Getenv("STATION_ID")
+	fmt.Println("STATION_ID:", stationID)
+    if stationID == "" {
+        fmt.Println("STATION_ID não definido, usando valor padrão 0")
+        return 0
+    }
+    id, err := strconv.Atoi(stationID)
+    if err != nil {
+        fmt.Println("Erro ao converter STATION_ID:", err)
+        return 0
+    }
+    return id
 }
 
 func main() {
