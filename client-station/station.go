@@ -67,25 +67,28 @@ func main() {
 
 	queue := &QueueManager{}
 
-	// Envia identificação como posto de recarga
-	station := Station{
-		Type: "station",
-		ID:   2, // Pode vir de config/env
-	}
+	// Loop para criar 5 instâncias de postos com IDs de 1 a 5
+    for i := 1; i <= 5; i++ {
+        // Criação da estação com ID variável
+        station := Station{
+            Type: "station",
+            ID:   i, // A ID será variável de 1 a 5
+        }
 
-	jsonData, err := json.Marshal(station)
-	if err != nil {
-		fmt.Println("Erro ao converter identificação para JSON:", err)
-		return
-	}
+        jsonData, err := json.Marshal(station)
+        if err != nil {
+            fmt.Println("Erro ao converter identificação para JSON:", err)
+            return
+        }
 
-	_, err = conn.Write(jsonData)
-	if err != nil {
-		fmt.Println("Erro ao enviar identificação:", err)
-		return
-	}
+        _, err = conn.Write(jsonData)
+        if err != nil {
+            fmt.Println("Erro ao enviar identificação:", err)
+            return
+        }
 
-	fmt.Println("✅ Ponto de Recarga conectado ao servidor...")
+        fmt.Printf("✅ Posto de Recarga %d conectado ao servidor...\n", i)
+    }
 
 	for {
 		buf := make([]byte, 1024)
