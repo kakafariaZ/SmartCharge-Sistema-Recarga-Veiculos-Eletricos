@@ -63,8 +63,9 @@ O sistema utiliza comunicação via TCP para troca de mensagens entre os carros,
 ### 2. **Executar um posto de recarga**
    Para iniciar um posto de recarga:
    ```bash
-   docker-compose up client-station
+   docker-compose up client-station-1
    ```
+   Para iniciar cada container de cada posto, mude o número ``1`` no final do comando. 
 
 ### 3. **Executar um carro**
    Para iniciar um carro individualmente:
@@ -82,7 +83,7 @@ O sistema utiliza comunicação via TCP para troca de mensagens entre os carros,
 - **[`client-car`](client-car )**: Código do cliente que simula os carros elétricos.
 - **[`client-station`](client-station )**: Código do cliente que simula os postos de recarga.
 - **[`Internal`](Internal )**: Contém módulos internos, como gerenciamento de filas e comunicação via WebSocket.
-- **[`models`](models )**: Definições de modelos de dados, como `ChargeStation`.
+- **`models`**: Definições de modelos de dados, como `ChargeStation`, nas structs de servidor e clientes.
 
 ---
 
