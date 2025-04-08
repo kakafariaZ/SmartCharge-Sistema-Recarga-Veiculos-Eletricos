@@ -9,7 +9,7 @@ services: # Define os serviços que serão executados
     networks:
       - minha-rede
 
-  client-station-1: # Define o serviço server
+  client-station-1: 
     build: ./client-station
     networks:
       - minha-rede
@@ -18,7 +18,7 @@ services: # Define os serviços que serão executados
     environment:
        - STATION_ID=1
 
-  client-station-2: # Define o serviço server
+  client-station-2:
     build: ./client-station
     networks:
       - minha-rede
@@ -27,7 +27,7 @@ services: # Define os serviços que serão executados
     environment:
        - STATION_ID=2
 
-  client-station-3: # Define o serviço server
+  client-station-3:
     build: ./client-station
     networks:
       - minha-rede
@@ -36,7 +36,7 @@ services: # Define os serviços que serão executados
     environment:
        - STATION_ID=3
 
-  client-station-4: # Define o serviço server
+  client-station-4:
     build: ./client-station
     networks:
       - minha-rede
@@ -45,7 +45,7 @@ services: # Define os serviços que serão executados
     environment:
        - STATION_ID=4
 
-  client-station-5: # Define o serviço server
+  client-station-5:
     build: ./client-station
     networks:
       - minha-rede
@@ -54,7 +54,7 @@ services: # Define os serviços que serão executados
     environment:
        - STATION_ID=5
 
-  client-car: # Define o serviço client
+  client-car:
     build: ./client-car
     networks:
       - minha-rede

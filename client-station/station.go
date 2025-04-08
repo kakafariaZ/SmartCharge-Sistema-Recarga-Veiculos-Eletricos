@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"sync"
 	"os"
-	"math/rand"
-	"time"
+	"strconv"
+	"sync"
 )
 
 type Station struct {
@@ -61,18 +60,18 @@ func (q *QueueManager) IsAvailable() bool {
 
 // Função para obter o ID do ponto de recarga, garantindo que não se repita
 func getStationID() int {
-    stationID := os.Getenv("STATION_ID")
+	stationID := os.Getenv("STATION_ID")
 	fmt.Println("STATION_ID:", stationID)
-    if stationID == "" {
-        fmt.Println("STATION_ID não definido, usando valor padrão 0")
-        return 0
-    }
-    id, err := strconv.Atoi(stationID)
-    if err != nil {
-        fmt.Println("Erro ao converter STATION_ID:", err)
-        return 0
-    }
-    return id
+	if stationID == "" {
+		fmt.Println("STATION_ID não definido, usando valor padrão 0")
+		return 0
+	}
+	id, err := strconv.Atoi(stationID)
+	if err != nil {
+		fmt.Println("Erro ao converter STATION_ID:", err)
+		return 0
+	}
+	return id
 }
 
 func main() {
@@ -86,7 +85,7 @@ func main() {
 
 	queue := &QueueManager{}
 
-	// Pega o ID do ponto de recarga a partir do ID do container	
+	// Pega o ID do ponto de recarga a partir do ID do container
 	stationID := getStationID()
 
 	station := Station{
