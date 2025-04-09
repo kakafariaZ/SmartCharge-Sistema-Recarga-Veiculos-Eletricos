@@ -222,7 +222,8 @@ func processCarData(conn net.Conn, carID int) {
 			fmt.Printf("Carro %d - Bateria crítica: %d%%. Melhor Posto: %d\n",
 				carID, batteryLevel, bestStation.ID)
 
-				sendToStation(bestStation.ID, carID, carLocation, chargeStations)
+				sendToCar(bestStation.ID, carID, carLocation, chargeStations)
+				sendToStation(bestStation.ID, carID, carLocation, batteryLevel)
 			
 
 		}
@@ -246,7 +247,7 @@ func processStationData(conn net.Conn, stationID int) {
 	}
 }
 
-func sendToStation(stationID int, carID int, carLocation [2]int, chargeStations []ChargingStation) {
+func sendToCar(stationID int, carID int, carLocation [2]int, chargeStations []ChargingStation) {
 	connectionsLock.Lock()
 	defer connectionsLock.Unlock()
 
@@ -260,9 +261,9 @@ func sendToStation(stationID int, carID int, carLocation [2]int, chargeStations 
 			// Envia coordenadas do posto para o carro
 			bestStation := calculateStationDistances(carLocation, chargeStations)
 			request := map[string]interface{}{
-				"action":          "request_station_data",
-				"best_station_id": stationID,
-				"car_id":          carID,
+				"action":           "request_station_data",
+				"best_station_id":  stationID,
+				"car_id":           carID,
 				"station_location": bestStation.Location, // Envia a localização da estação de recarga
 			}
 
@@ -284,6 +285,50 @@ func sendToStation(stationID int, carID int, carLocation [2]int, chargeStations 
 
 	fmt.Printf("Carro %d não encontrado entre as conexões ativas\n", carID)
 }
+
+func sendToStation(stationID int, carID int, carLocation [2]int, batteryLevel int) {
+	connectionsLock.Lock()
+	defer connectionsLock.Unlock()
+
+	for _, c := range connections {
+
+		// Verifica se a conexão é do tipo "station" e se o ID corresponde
+		// ao ID do posto de recarga
+		// Se sim, envia a requisição
+		// Se não, continua verificando as outras conexões
+
+		fmt.Printf("Verificando conexão: %d\n", c.ID)
+
+		if c.Type == StationType && c.ID == stationID {
+			fmt.Printf("Conexão encontrada para o posto %d\n", stationID)
+			request := map[string]interface{}{
+				"action":          "request_station_data",
+				"best_station_id": stationID,
+				"car_id":          carID,
+				"car_location":    carLocation,
+				"batteryLevel":    batteryLevel,
+			}
+
+			jsonData, err := json.Marshal(request)
+			if err != nil {
+				fmt.Println("Erro ao criar requisição JSON:", err)
+				return
+			}
+
+			_, err = c.Conn.Write(jsonData)
+			if err != nil {
+				fmt.Println("Erro ao enviar requisição para o posto:", err)
+			} else {
+				fmt.Printf("Requisição enviada para o posto %d sobre o carro %d\n",
+					stationID, carID)
+			}
+			return
+		}
+	}
+
+	fmt.Printf("Posto %d não encontrado entre as conexões ativas\n", stationID)
+}
+
 
 func removeConnection(conn net.Conn) {
 	connectionsLock.Lock()
