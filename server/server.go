@@ -300,7 +300,7 @@ func sendToStation(stationID int, carID int, carLocation [2]int, batteryLevel in
 		fmt.Printf("Verificando conexão: %d\n", c.ID)
 
 		if c.Type == StationType && c.ID == stationID {
-			fmt.Printf("Conexão encontrada para o posto %d\n", stationID)
+			//fmt.Printf("Conexão encontrada para o posto %d\n", stationID)
 			request := map[string]interface{}{
 				"action":          "request_station_data",
 				"best_station_id": stationID,
