@@ -32,8 +32,6 @@ func main() {
 
 	carID := getCarID() // Gera um ID dinâmico para o carro
 
-	///* ****
-
 	// Cria o objeto usado para comunicação com o servidor
 	car := Car{
 		ID:           carID,
