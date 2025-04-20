@@ -32,6 +32,8 @@ func main() {
 
 	carID := getCarID() // Gera um ID dinâmico para o carro
 
+	///* ****
+
 	// Cria o objeto usado para comunicação com o servidor
 	car := Car{
 		ID:           carID,
@@ -102,7 +104,7 @@ func carMovement(car *CarState, criticalChan chan CarState) {
 				fmt.Println("⚠️  ALERTA! 🚨 Bateria crítica! ")
 				// Envia dados para o canal crítico
 				criticalChan <- *car
-				moveToStation(car, car.Location)
+				moveToStation(car, car.Location) // move o carro até o posto
 			}
 
 			// Exibe a posição atual do carro
